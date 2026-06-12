@@ -146,9 +146,7 @@ let resizeObserver: ResizeObserver | null = null
 let intersectionObserver: IntersectionObserver | null = null
 let unsubscribe: (() => void) | null = null
 let statusUnsubscribe: (() => void) | null = null
-let onDocumentMouseUp: (() => void) | null = null
 let onDocumentMouseDown: ((e: MouseEvent) => void) | null = null
-let onMouseDownGlobal: ((e: MouseEvent) => void) | null = null
 
 let resizeTimer: ReturnType<typeof setTimeout> | null = null
 let isResizing = false
@@ -738,34 +736,20 @@ onMounted(() => {
 
   } // end bindListeners
 
-  // Selection action: copy on mouse up (only when a new selection was made).
-  // Use mouseDownOnThisTerminal to ensure copy only fires when the user
-  // actually started selecting inside this terminal. Without this, clicking
-  // another panel (or returning from another app) would trigger copy from
-  // this terminal's leftover selection.
-  let selectionStartText = ''
-  let mouseDownOnThisTerminal = false
-  onDocumentMouseUp = () => {
-    if (!mouseDownOnThisTerminal) return
-    mouseDownOnThisTerminal = false
-    if (settingsStore.settings.terminal.selectionAction === 'copy') {
+  // Selection action: copy to clipboard via xterm's native selection event.
+  // Use setTimeout to let xterm finish processing the selection (especially
+  // for double-click word selection) before reading getSelection().
+  let lastSelectionText = ''
+  terminal.onSelectionChange(() => {
+    if (settingsStore.settings.terminal.selectionAction !== 'copy') return
+    setTimeout(() => {
       const text = terminal?.getSelection()
-      if (text && text !== selectionStartText) {
-        navigator.clipboard.writeText(text)
+      if (text && text !== lastSelectionText) {
+        lastSelectionText = text
+        navigator.clipboard.writeText(text).catch(() => {})
       }
-    }
-  }
-  document.addEventListener('mouseup', onDocumentMouseUp)
-  terminal.element?.addEventListener('mousedown', () => {
-    mouseDownOnThisTerminal = true
-    selectionStartText = terminal?.getSelection() || ''
+    }, 0)
   })
-  onMouseDownGlobal = (e: MouseEvent) => {
-    if (!terminal || !terminal.element?.contains(e.target as Node)) {
-      mouseDownOnThisTerminal = false
-    }
-  }
-  document.addEventListener('mousedown', onMouseDownGlobal)
 
   // Close suggestion popup when clicking outside
   onDocumentMouseDown = (event: MouseEvent) => {
@@ -1129,17 +1113,9 @@ onUnmounted(() => {
 
   unsubscribe?.()
   statusUnsubscribe?.()
-  if (onDocumentMouseUp) {
-    document.removeEventListener('mouseup', onDocumentMouseUp)
-    onDocumentMouseUp = null
-  }
   if (onDocumentMouseDown) {
     document.removeEventListener('mousedown', onDocumentMouseDown)
     onDocumentMouseDown = null
-  }
-  if (onMouseDownGlobal) {
-    document.removeEventListener('mousedown', onMouseDownGlobal)
-    onMouseDownGlobal = null
   }
   window.removeEventListener('resize', onWindowResize)
   window.removeEventListener('split:resize-start', onSplitResizeStart)
