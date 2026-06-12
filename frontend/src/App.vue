@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container">
+  <div class="app-container" :class="{ 'platform-mac': platform === 'darwin' }">
     <AppHeader
       @new-connection="showConnectionForm = true"
       @new-local-terminal-with-shell="createLocalTerminalWithShell"
@@ -114,7 +114,7 @@ import { useSessionStore } from './stores/sessionStore'
 import { useAIStore } from './stores/aiStore'
 import { useSettingsStore } from './stores/settingsStore'
 import { useI18n } from './i18n'
-import { CreateSession, CloseSession, RDPHide, RDPShow, RDPSetPosition, RDPSetFocus } from '../wailsjs/go/main/App'
+import { CreateSession, CloseSession, RDPHide, RDPShow, RDPSetPosition, RDPSetFocus, GetPlatform } from '../wailsjs/go/main/App'
 import { EventsOn } from '../wailsjs/runtime'
 import { ElMessage } from 'element-plus'
 import type { ConnectionConfig } from './types/session'
@@ -195,6 +195,7 @@ function RDPShowForOverlay() {
 
 const showConnectionForm = ref(false)
 const sidebarVisible = ref(localStorage.getItem('sidebarVisible') !== 'false')
+const platform = ref('')
 
 // Input context menu state
 const inputMenuVisible = ref(false)
@@ -276,6 +277,7 @@ function onWheel(e: WheelEvent) {
 }
 
 onMounted(() => {
+  GetPlatform().then(p => { platform.value = p }).catch(() => {})
   connectionStore.load()
   aiStore.init()
   settingsStore.init()
@@ -660,6 +662,13 @@ watch(() => aiStore.visible, () => {
   width: 100%;
   height: 100%;
   background: var(--bg-base);
+}
+
+.app-container.platform-mac {
+  /* Match the default macOS window corner radius for a native look.
+     Requires WindowIsTranslucent + WebviewIsTransparent on macOS. */
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .main-content {
