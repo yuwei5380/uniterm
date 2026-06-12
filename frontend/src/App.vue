@@ -470,8 +470,6 @@ async function createLocalTerminal(shellPath?: string) {
   const panel = panelStore.createPanel(null, 'local')
   const shellName = getShellLabel(shellPath)
   panel.title = shellName
-  const tab = tabStore.createTerminalTab(shellName, panel.id)
-  panelStore.movePanelToTab(panel.id, tab.id)
 
   try {
     const config: ConnectionConfig = {
@@ -488,9 +486,11 @@ async function createLocalTerminal(shellPath?: string) {
     const info = await CreateSession('local', config)
     panelStore.bindSession(panel.id, info.id)
     sessionStore.initSession(info.id)
+    // Create tab AFTER session is bound so BaseTerminal mounts with valid sessionId
+    const tab = tabStore.createTerminalTab(shellName, panel.id)
+    panelStore.movePanelToTab(panel.id, tab.id)
   } catch (e) {
     console.error('Failed to create local terminal:', e)
-    tabStore.closeTab(tab.id)
     panelStore.removePanel(panel.id)
   }
 }
