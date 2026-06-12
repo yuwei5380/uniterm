@@ -36,14 +36,21 @@
         >
           <Sparkles :size="14" />
         </button>
-        <button
-          v-if="panel.type === 'ssh' || panel.type === 'local'"
-          class="panel-duplicate"
-          @click.stop="emit('duplicate', panel.id)"
-          :title="t('terminal.duplicate')"
-        >
-          <Copy :size="14" />
-        </button>
+        <div v-if="panel.type === 'ssh' || panel.type === 'local'" class="panel-more-wrapper">
+          <button
+            class="panel-more"
+            @click.stop="toggleMoreMenu"
+            :title="t('terminal.more')"
+          >
+            <MoreHorizontal :size="14" />
+          </button>
+          <div v-show="moreMenuVisible" class="panel-more-menu" @click.stop>
+            <div class="menu-item" @click="emit('duplicate', panel.id); moreMenuVisible = false">{{ t('terminal.duplicate') }}</div>
+            <div class="menu-item" @click="connectSftp(); moreMenuVisible = false">{{ t('sidebar.connectSftp') }}</div>
+            <div class="menu-item" @click="connectMonitor(); moreMenuVisible = false">{{ t('sidebar.connectMonitor') }}</div>
+            <div class="menu-item" @click="triggerSearch(); moreMenuVisible = false">{{ t('terminal.searchText') }}</div>
+          </div>
+        </div>
         <button class="panel-close" @click.stop="emit('close', panel.id)">×</button>
       </div>
     </div>
@@ -60,8 +67,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, nextTick } from 'vue'
-import { Radio, Sparkles, Copy } from '@lucide/vue'
+import { ref, watch, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { Radio, Sparkles, MoreHorizontal } from '@lucide/vue'
 import BaseTerminal from './BaseTerminal.vue'
 import { useTabStore } from '../stores/tabStore'
 import { usePanelStore } from '../stores/panelStore'
@@ -88,6 +95,8 @@ const emit = defineEmits<{
   toggleAiLock: [panelId: string]
   duplicate: [panelId: string]
   rename: [panelId: string, newName: string]
+  connectSftp: [panelId: string]
+  connectMonitor: [panelId: string]
 }>()
 
 const tabStore = useTabStore()
@@ -104,6 +113,27 @@ const baseTerminalRef = ref<InstanceType<typeof BaseTerminal> | null>(null)
 const editing = ref(false)
 const editName = ref('')
 const editInputRef = ref<HTMLInputElement>()
+const moreMenuVisible = ref(false)
+
+function toggleMoreMenu() {
+  moreMenuVisible.value = !moreMenuVisible.value
+}
+
+function connectSftp() {
+  window.dispatchEvent(new CustomEvent('app:connect-sftp', { detail: props.panel }))
+}
+
+function connectMonitor() {
+  window.dispatchEvent(new CustomEvent('app:connect-monitor', { detail: props.panel }))
+}
+
+function triggerSearch() {
+  window.dispatchEvent(new CustomEvent('terminal:open-search'))
+}
+
+function onDocumentClick() {
+  moreMenuVisible.value = false
+}
 
 function startEdit() {
   editName.value = props.panel.title
@@ -160,6 +190,14 @@ async function retryConnection() {
     baseTerminalRef.value?.setRetryOnEnter(true)
   }
 }
+
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onDocumentClick)
+})
 
 // Watch panel sessionId changes and retry resize
 watch(() => props.panel.sessionId, (newId) => {
@@ -306,6 +344,50 @@ watch(() => props.isActive, (active) => {
   transition: all 0.12s ease;
 }
 .panel-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.panel-more-wrapper {
+  position: relative;
+}
+.panel-more {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+}
+.panel-more:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.panel-more-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 100;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 120px;
+  padding: 4px;
+}
+.panel-more-menu .menu-item {
+  padding: 7px 14px;
+  font-size: 12px;
+  font-family: var(--font-ui);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.panel-more-menu .menu-item:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }

@@ -306,6 +306,16 @@ onMounted(() => {
   EventsOn('rdp:move-resize-start', () => RDPHideForOverlay())
   EventsOn('rdp:move-resize-end', () => RDPShowForOverlay())
 
+  // Panel/Tab menu actions: connect SFTP / Monitor
+  window.addEventListener('app:connect-sftp', ((e: CustomEvent) => {
+    const panel = e.detail
+    if (panel?.config) onConnectSftp(panel.config)
+  }) as EventListener)
+  window.addEventListener('app:connect-monitor', ((e: CustomEvent) => {
+    const panel = e.detail
+    if (panel?.config) onConnectMonitor(panel.config)
+  }) as EventListener)
+
 })
 
 onUnmounted(() => {

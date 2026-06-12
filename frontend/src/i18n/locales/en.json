@@ -69,6 +69,8 @@
   "tab.close": "Close",
   "tab.more": "More Tabs",
   "terminal.duplicate": "Duplicate Session",
+  "terminal.more": "More",
+  "terminal.searchText": "Text Search",
   "terminal.askAI": "Ask AI",
   "terminal.copy": "Copy",
   "terminal.copyAndPaste": "Copy & Paste",

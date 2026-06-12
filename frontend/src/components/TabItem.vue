@@ -47,6 +47,9 @@
         @click.stop
       >
         <div v-if="tab.type === 'terminal'" class="menu-item" @click="duplicateTab">{{ t('tab.duplicate') }}</div>
+        <div v-if="tab.type === 'terminal'" class="menu-item" @click="openSftp">{{ t('sidebar.connectSftp') }}</div>
+        <div v-if="tab.type === 'terminal'" class="menu-item" @click="openMonitor">{{ t('sidebar.connectMonitor') }}</div>
+        <div v-if="tab.type === 'terminal'" class="menu-item" @click="triggerSearch">{{ t('terminal.searchText') }}</div>
         <div v-if="tab.type === 'terminal'" class="menu-item" @click="startEdit">{{ t('tab.rename') }}</div>
         <div v-if="tab.type === 'terminal'" class="menu-divider" />
         <div class="menu-item" @click="closeTab">{{ t('tab.close') }}</div>
@@ -223,6 +226,27 @@ async function duplicateTab() {
   }
   const newTab = tabStore.createTerminalTab(panel.title, newPanel.id)
   panelStore.movePanelToTab(newPanel.id, newTab.id)
+  closeContextMenu()
+}
+
+function openSftp() {
+  const panel = panelStore.getPanel(props.tab.panelId)
+  if (panel) {
+    window.dispatchEvent(new CustomEvent('app:connect-sftp', { detail: panel }))
+  }
+  closeContextMenu()
+}
+
+function openMonitor() {
+  const panel = panelStore.getPanel(props.tab.panelId)
+  if (panel) {
+    window.dispatchEvent(new CustomEvent('app:connect-monitor', { detail: panel }))
+  }
+  closeContextMenu()
+}
+
+function triggerSearch() {
+  window.dispatchEvent(new CustomEvent('terminal:open-search'))
   closeContextMenu()
 }
 

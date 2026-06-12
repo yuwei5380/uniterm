@@ -69,6 +69,8 @@
   "tab.close": "关闭",
   "tab.more": "更多标签",
   "terminal.duplicate": "复制会话",
+  "terminal.more": "更多",
+  "terminal.searchText": "文本搜索",
   "terminal.askAI": "问AI",
   "terminal.copy": "复制",
   "terminal.copyAndPaste": "复制并粘贴",
