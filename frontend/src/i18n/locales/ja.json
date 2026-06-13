@@ -121,6 +121,8 @@
   "ai.copyFailed": "コピーに失敗しました",
   "ai.maximize": "最大化",
   "ai.restore": "元に戻す",
+  "ai.search": "検索",
+  "ai.searchPlaceholder": "会話を検索...",
   "sftp.local": "ローカル",
   "sftp.remote": "リモート",
   "sftp.name": "名前",
