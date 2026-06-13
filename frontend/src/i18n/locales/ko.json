@@ -121,6 +121,8 @@
   "ai.copyFailed": "복사 실패",
   "ai.maximize": "최대화",
   "ai.restore": "복원",
+  "ai.search": "검색",
+  "ai.searchPlaceholder": "대화 검색...",
   "sftp.local": "로컬",
   "sftp.remote": "원격",
   "sftp.name": "이름",
