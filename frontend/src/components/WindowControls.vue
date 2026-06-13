@@ -1,21 +1,5 @@
 <template>
-  <div class="window-controls" :class="platform">
-    <!-- macOS: traffic-light circles on the left -->
-    <template v-if="platform === 'darwin'">
-      <button class="wc-btn mac close" @click="$emit('close')" aria-label="关闭">
-        <svg viewBox="0 0 12 12" width="8" height="8"><path d="M6.5 6l2.7 2.7-.7.7L5.8 6.7 3.1 9.4l-.7-.7L5.1 6 2.4 3.3l.7-.7L5.8 5.3 8.5 2.6l.7.7L6.5 6z"/></svg>
-      </button>
-      <button class="wc-btn mac minimise" @click="$emit('minimise')" aria-label="最小化">
-        <svg viewBox="0 0 12 12" width="8" height="8"><path d="M2 5.5h8v1H2z"/></svg>
-      </button>
-      <button class="wc-btn mac maximise" @click="$emit('maximise')" aria-label="最大化">
-        <svg v-if="isMaximised" viewBox="0 0 12 12" width="8" height="8"><path d="M3 5h6v4H3V5zm1-3h5v2H4V2z"/></svg>
-        <svg v-else viewBox="0 0 12 12" width="8" height="8"><path d="M3 2h6v8H3V2zm1 1v6h4V3H4z"/></svg>
-      </button>
-    </template>
-
-    <!-- Windows / Linux: square buttons on the right -->
-    <template v-else>
+  <div class="window-controls">
       <button class="wc-btn win minimise" @click="$emit('minimise')" aria-label="最小化">
         <svg viewBox="0 0 12 12" width="14" height="14"><path d="M1 5.5h10v1H1z"/></svg>
       </button>
@@ -37,13 +21,11 @@
       <button class="wc-btn win close" @click="$emit('close')" aria-label="关闭">
         <svg viewBox="0 0 12 12" width="14" height="14"><path d="M2 2l8 8M10 2L2 10" stroke="currentColor" stroke-width="1.2"/></svg>
       </button>
-    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 defineProps<{
-  platform: 'windows' | 'darwin' | 'linux'
   isMaximised: boolean
 }>()
 
@@ -60,60 +42,10 @@ const restoreMaskId = `rm-${Math.random().toString(36).slice(2, 9)}`
   --wails-draggable: no-drag;
 }
 
-.window-controls.darwin {
-  gap: 8px;
-}
-
-.window-controls.windows,
-.window-controls.linux {
+.window-controls {
   gap: 0;
 }
 
-/* macOS traffic light buttons */
-.wc-btn.mac {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: none;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.1s ease;
-  opacity: 0.9;
-}
-
-.wc-btn.mac:hover {
-  opacity: 1;
-  transform: scale(1.15);
-}
-
-.wc-btn.mac:active {
-  transform: scale(0.95);
-}
-
-.wc-btn.mac.close {
-  background: #ff5f56;
-}
-
-.wc-btn.mac.minimise {
-  background: #ffbd2e;
-}
-
-.wc-btn.mac.maximise {
-  background: #27c93f;
-}
-
-.wc-btn.mac svg {
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  fill: currentColor;
-}
-
-.window-controls:hover .wc-btn.mac svg {
-  opacity: 1;
-}
 
 /* Windows/Linux buttons — match header-btn style */
 .wc-btn.win {

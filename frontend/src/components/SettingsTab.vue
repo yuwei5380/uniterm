@@ -322,7 +322,25 @@
         <div class="about-content">
           <div class="about-appname">uniTerm</div>
           <p class="about-desc">{{ t('settings.aboutDesc') }}</p>
-          <div class="about-version">{{ t('settings.version') }}: {{ appVersion }}</div>
+          <div class="about-version">
+            {{ t('settings.version') }}: {{ updateCheck.updateInfo?.current || '...' }}
+          </div>
+          <div class="about-update-actions">
+            <el-button
+              size="small"
+              :loading="updateCheck.checking"
+              @click="handleCheckUpdate"
+            >
+              {{ updateCheck.checking ? t('settings.checking') : t('settings.checkUpdate') }}
+            </el-button>
+          </div>
+          <div class="about-auto-check">
+            <el-checkbox
+              v-model="updateCheck.autoCheck"
+            >
+              {{ t('settings.autoCheckUpdate') }}
+            </el-checkbox>
+          </div>
         </div>
       </div>
 
@@ -416,6 +434,7 @@ import { ElMessage } from 'element-plus'
 import { FetchModels } from '../../wailsjs/go/main/App'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useSyncStore } from '../stores/syncStore'
+import { useUpdateCheck } from '../composables/useUpdateCheck'
 import { useI18n } from '../i18n'
 import { useSuggestions } from '../composables/useSuggestions'
 import type { HistoryEntry } from '../composables/useSuggestions'
@@ -428,9 +447,8 @@ import DeleteRepoDialog from './DeleteRepoDialog.vue'
 
 const settingsStore = useSettingsStore()
 const syncStore = useSyncStore()
+const updateCheck = useUpdateCheck()
 const { t } = useI18n()
-
-const appVersion = import.meta.env.VITE_VERSION || 'dev'
 
 const suggestions = useSuggestions()
 const historySearch = ref('')
@@ -512,6 +530,10 @@ async function handleAutoSyncToggle() {
   } catch (e) {
     console.error('Failed to save auto sync toggle:', e)
   }
+}
+
+async function handleCheckUpdate() {
+  await updateCheck.checkForUpdate(true)
 }
 
 syncStore.loadConfig()
@@ -1055,5 +1077,14 @@ function getShellLabel(path: string): string {
 }
 .model-autocomplete {
   flex: 1;
+}
+
+.about-update-actions {
+  margin-top: 20px;
+}
+.about-auto-check {
+  margin-top: 12px;
+  font-size: 13px;
+  font-family: var(--font-ui);
 }
 </style>

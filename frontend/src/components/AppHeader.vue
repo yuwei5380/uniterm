@@ -3,15 +3,8 @@
     class="app-header"
     @dblclick="onDblClick"
   >
-    <!-- macOS: window controls left -->
-    <WindowControls
-      v-if="platform === 'darwin'"
-      :platform="platform"
-      :is-maximised="isMaximised"
-      @minimise="onMinimise"
-      @maximise="onMaximise"
-      @close="onClose"
-    />
+    <!-- macOS: spacer for native traffic lights -->
+    <div v-if="platform === 'darwin'" class="mac-traffic-light-spacer" />
 
     <!-- Connections button (icon only, leftmost) -->
     <button class="header-btn" @click="emit('toggle-sidebar')" :title="t('header.connections')">
@@ -89,7 +82,6 @@
     <!-- Windows/Linux: window controls right -->
     <WindowControls
       v-if="platform !== 'darwin'"
-      :platform="platform"
       :is-maximised="isMaximised"
       @minimise="onMinimise"
       @maximise="onMaximise"
@@ -332,6 +324,11 @@ onUnmounted(() => {
     var(--accent-subtle) 80%,
     transparent 100%
   );
+}
+
+.mac-traffic-light-spacer {
+  width: 72px;
+  flex-shrink: 0;
 }
 
 .app-header :deep(.window-controls) {

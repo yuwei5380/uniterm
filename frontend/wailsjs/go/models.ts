@@ -719,6 +719,7 @@ export namespace store {
 	    language: string;
 	    terminal: TerminalSettings;
 	    ai: AISettings;
+	    autoCheckUpdate?: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppSettings(source);
@@ -730,6 +731,7 @@ export namespace store {
 	        this.language = source["language"];
 	        this.terminal = this.convertValues(source["terminal"], TerminalSettings);
 	        this.ai = this.convertValues(source["ai"], AISettings);
+	        this.autoCheckUpdate = source["autoCheckUpdate"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -879,6 +881,29 @@ export namespace sync {
 		    }
 		    return a;
 		}
+	}
+
+}
+
+export namespace update {
+	
+	export class UpdateInfo {
+	    hasUpdate: boolean;
+	    current: string;
+	    latest: string;
+	    releaseUrl: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new UpdateInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.hasUpdate = source["hasUpdate"];
+	        this.current = source["current"];
+	        this.latest = source["latest"];
+	        this.releaseUrl = source["releaseUrl"];
+	    }
 	}
 
 }

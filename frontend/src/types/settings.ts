@@ -36,6 +36,7 @@ export interface AppSettings {
   language: Language
   terminal: TerminalSettings
   ai: AISettings
+  autoCheckUpdate: boolean
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -62,7 +63,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
       }
     ],
     activeModelId: 'model-default'
-  }
+  },
+  autoCheckUpdate: true
 }
 
 export const TERMINAL_THEMES: { label: string; value: TerminalTheme }[] = [
@@ -103,3 +105,10 @@ export const LANGUAGE_OPTIONS: { value: Locale; label: string; native: string }[
   { value: 'fr', label: 'Français', native: 'Français' },
   { value: 'ru', label: 'Русский', native: 'Русский' },
 ]
+
+export interface UpdateInfo {
+  hasUpdate: boolean
+  current: string
+  latest: string
+  releaseUrl: string
+}

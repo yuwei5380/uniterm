@@ -8,6 +8,8 @@ import (
 
 const settingsFileName = "settings.json"
 
+func boolPtr(b bool) *bool { return &b }
+
 type TerminalSettings struct {
 	Theme             string `json:"theme"`
 	FontFamily        string `json:"fontFamily"`
@@ -42,10 +44,11 @@ type AISettings struct {
 }
 
 type AppSettings struct {
-	Theme     string           `json:"theme"`
-	Language  string           `json:"language"`
-	Terminal  TerminalSettings `json:"terminal"`
-	AI        AISettings       `json:"ai"`
+	Theme            string           `json:"theme"`
+	Language         string           `json:"language"`
+	Terminal         TerminalSettings `json:"terminal"`
+	AI               AISettings       `json:"ai"`
+	AutoCheckUpdate  *bool            `json:"autoCheckUpdate"`
 }
 
 type SettingsStore struct {
@@ -125,6 +128,11 @@ func (s *SettingsStore) Load() (AppSettings, error) {
 			}
 		}
 	}
+	// Default autoCheckUpdate to true if not present
+	if settings.AutoCheckUpdate == nil {
+		settings.AutoCheckUpdate = boolPtr(true)
+		needsSave = true
+	}
 	if needsSave {
 		jsonData, _ := json.MarshalIndent(settings, "", "  ")
 		_ = os.WriteFile(s.filePath(), jsonData, 0600)
@@ -158,5 +166,6 @@ func defaultSettings() AppSettings {
 			},
 			ActiveModelID: "model-default",
 		},
+		AutoCheckUpdate: boolPtr(true),
 	}
 }

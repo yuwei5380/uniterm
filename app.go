@@ -26,6 +26,7 @@ import (
 	"github.com/ys-ll/uniterm/backend/session"
 	"github.com/ys-ll/uniterm/backend/store"
 	"github.com/ys-ll/uniterm/backend/sync"
+	"github.com/ys-ll/uniterm/backend/update"
 )
 
 type App struct {
@@ -759,6 +760,10 @@ func (a *App) GetAppInfo() AppInfo {
 		Name:    "uniTerm",
 		Version: Version,
 	}
+}
+
+func (a *App) CheckForUpdate() (*update.UpdateInfo, error) {
+	return update.Check(Version)
 }
 
 func (a *App) SaveTerminalHistory(entries []store.HistoryEntry) error {

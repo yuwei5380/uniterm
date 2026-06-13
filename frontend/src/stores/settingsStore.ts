@@ -164,6 +164,7 @@ function mergeSettings(loaded: AppSettings): AppSettings {
     ai: {
       models: loaded.ai?.models?.length ? loaded.ai.models : DEFAULT_SETTINGS.ai.models,
       activeModelId: loaded.ai?.activeModelId || DEFAULT_SETTINGS.ai.activeModelId
-    }
+    },
+    autoCheckUpdate: loaded.autoCheckUpdate ?? DEFAULT_SETTINGS.autoCheckUpdate,
   }
 }

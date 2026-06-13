@@ -53,8 +53,7 @@ func main() {
 		OnStartup:        app.startup,
 		OnShutdown:       app.shutdown,
 		Mac: &mac.Options{
-			WindowIsTranslucent: true,
-			WebviewIsTransparent: true,
+			TitleBar: mac.TitleBarHiddenInset(),
 		},
 		Windows: &windows.Options{
 			WebviewUserDataPath: webviewDataPath,
