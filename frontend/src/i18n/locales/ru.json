@@ -121,6 +121,8 @@
   "ai.copyFailed": "Не удалось скопировать",
   "ai.maximize": "Развернуть",
   "ai.restore": "Восстановить",
+  "ai.search": "Поиск",
+  "ai.searchPlaceholder": "Поиск в разговорах...",
   "sftp.local": "Локальный",
   "sftp.remote": "Удаленный",
   "sftp.name": "Имя",
