@@ -84,7 +84,7 @@ jobs:
             export PATH="/c/Program Files (x86)/NSIS/Bin:$PATH"
           fi
           echo "PATH=$PATH"
-          wails build -platform ${{ matrix.platform }} -ldflags "-s -w" -skipbindings ${{ matrix.platform == 'windows/amd64' && '-nsis' || '' }}
+          wails build -platform ${{ matrix.platform }} -ldflags "-s -w -X main.Version=${{ env.VERSION }}" -skipbindings ${{ matrix.platform == 'windows/amd64' && '-nsis' || '' }}
 
       - name: Fix macOS permissions and sign
         if: matrix.platform == 'darwin/universal'
