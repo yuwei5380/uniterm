@@ -114,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch } from 'vue'
 import { msg } from '../services/message'
 import { usePanelStore } from '../stores/panelStore'
 import { useI18n } from '../i18n'
@@ -211,10 +211,6 @@ let unsubscribe: (() => void) | null = null
 let unsubscribeStatus: (() => void) | null = null
 
 onMounted(async () => {
-  document.addEventListener('dragstart', onDragStart)
-  document.addEventListener('dragend', clearDragState)
-  document.addEventListener('drop', onDocumentDrop)
-
   unsubscribeStatus = EventsOn('session:status', (payload: { id: string; status: string }) => {
     if (payload.id === panel.value?.sessionId && payload.status === 'connected') {
       onRefreshLocal()
@@ -317,11 +313,22 @@ watch(() => panel.value?.sessionId, (newId, oldId) => {
 })
 
 onUnmounted(() => {
+  unsubscribe?.()
+  unsubscribeStatus?.()
+})
+
+// With KeepAlive, only the active instance should listen for global document
+// drag/drop events to avoid cached instances picking up drops from other tabs.
+onActivated(() => {
+  document.addEventListener('dragstart', onDragStart)
+  document.addEventListener('dragend', clearDragState)
+  document.addEventListener('drop', onDocumentDrop)
+})
+
+onDeactivated(() => {
   document.removeEventListener('dragstart', onDragStart)
   document.removeEventListener('dragend', clearDragState)
   document.removeEventListener('drop', onDocumentDrop)
-  unsubscribe?.()
-  unsubscribeStatus?.()
 })
 
 async function fetchLocalDrives() {
