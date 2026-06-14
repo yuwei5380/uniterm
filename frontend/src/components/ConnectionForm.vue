@@ -256,6 +256,12 @@ const newGroupName = ref('')
 
 watch(() => props.editConfig, (config) => {
   if (config) {
+    // If editing an existing connection (has id), merge its full config.
+    // Otherwise (sparse config from quick-new), reset first to avoid stale
+    // data from a previously edited connection leaking in.
+    if (!config.id) {
+      resetForm()
+    }
     Object.assign(form, { ...config })
     selectedGroupId.value = config.groupId || undefined
     // Sync resolution dropdown to the config's fixed size
