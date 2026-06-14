@@ -25,6 +25,8 @@ export interface ConnectionConfig {
   dbType?: string   // "mysql", "postgres", "rqlite"
   dbName?: string   // default database name
   postLoginScript?: string
+  // SSH tunnel: reference to an existing SSH connection used as a jump host
+  tunnelSSHConnId?: string
 }
 
 export interface SessionInfo {

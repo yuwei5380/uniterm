@@ -99,6 +99,21 @@
           :placeholder="t('conn.postLoginScriptPlaceholder')"
         />
       </el-form-item>
+      <el-form-item v-if="showTunnel" :label="t('conn.tunnel')">
+        <el-select
+          v-model="form.tunnelSSHConnId"
+          :placeholder="t('conn.tunnelPlaceholder')"
+          clearable
+          filterable
+        >
+          <el-option
+            v-for="c in sshConnections"
+            :key="c.id"
+            :label="`${c.name} (${c.user}@${c.host}:${c.port})`"
+            :value="c.id"
+          />
+        </el-select>
+      </el-form-item>
     </el-form>
     <template #footer>
       <el-button @click="visible = false">{{ t('conn.cancel') }}</el-button>
@@ -176,6 +191,17 @@ const category = computed(() => {
   if (form.type === 'database') return 'database'
   return 'terminal'
 })
+
+const sshConnections = computed(() =>
+  connectionStore.connections.filter(c =>
+    c.type === 'ssh' && c.id !== form.id
+  )
+)
+
+const TUNNEL_UNSUPPORTED = ['spice', 'mosh', 'local']
+const showTunnel = computed(() =>
+  !TUNNEL_UNSUPPORTED.includes(form.type)
+)
 
 function onCategoryChange(cat: string) {
   if (cat === 'terminal') {
@@ -300,6 +326,7 @@ function resetForm() {
   form.dbType = ''
   form.dbName = ''
   form.postLoginScript = ''
+  form.tunnelSSHConnId = undefined
   rdpResolution.value = '1280 × 720 (HD)'
   selectedGroupId.value = undefined
 }

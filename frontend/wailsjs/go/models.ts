@@ -294,6 +294,7 @@ export namespace session {
 	    dbType?: string;
 	    dbName?: string;
 	    postLoginScript?: string;
+	    tunnelSSHConnId?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ConnectionConfig(source);
@@ -318,6 +319,7 @@ export namespace session {
 	        this.dbType = source["dbType"];
 	        this.dbName = source["dbName"];
 	        this.postLoginScript = source["postLoginScript"];
+	        this.tunnelSSHConnId = source["tunnelSSHConnId"];
 	    }
 	}
 	export class ConnectionGroup {

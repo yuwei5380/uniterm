@@ -544,5 +544,7 @@
   "db.dropColumnConfirm": "Supprimer la colonne {name} ? Cette action est irréversible.",
   "db.dropIndexConfirm": "Supprimer l'index {name} ? Cette action est irréversible.",
   "db.addPkNullableWarn": "Les colonnes nullable suivantes seront définies en NOT NULL : {columns}",
-  "db.autoIncrementTypeWarn": "AUTO_INCREMENT nécessite un type de colonne entier (INT, BIGINT, etc.)"
+  "db.autoIncrementTypeWarn": "AUTO_INCREMENT nécessite un type de colonne entier (INT, BIGINT, etc.)",
+  "conn.tunnel": "SSH Tunnel",
+  "conn.tunnelPlaceholder": "Select SSH connection as jump host..."
 }

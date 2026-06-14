@@ -544,5 +544,7 @@
   "db.dropColumnConfirm": "컬럼 {name}을(를) 삭제할까요? 되돌릴 수 없습니다.",
   "db.dropIndexConfirm": "인덱스 {name}을(를) 삭제할까요? 되돌릴 수 없습니다.",
   "db.addPkNullableWarn": "다음 NULL 허용 컬럼이 NOT NULL로 설정됩니다: {columns}",
-  "db.autoIncrementTypeWarn": "AUTO_INCREMENT는 정수형 컬럼 유형(INT, BIGINT 등)이 필요합니다"
+  "db.autoIncrementTypeWarn": "AUTO_INCREMENT는 정수형 컬럼 유형(INT, BIGINT 등)이 필요합니다",
+  "conn.tunnel": "SSH Tunnel",
+  "conn.tunnelPlaceholder": "Select SSH connection as jump host..."
 }

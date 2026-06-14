@@ -544,5 +544,7 @@
   "db.dropColumnConfirm": "¿Eliminar la columna {name}? Esta acción no se puede deshacer.",
   "db.dropIndexConfirm": "¿Eliminar el índice {name}? Esta acción no se puede deshacer.",
   "db.addPkNullableWarn": "Las siguientes columnas nullable se establecerán como NOT NULL: {columns}",
-  "db.autoIncrementTypeWarn": "AUTO_INCREMENT requiere un tipo de columna entero (INT, BIGINT, etc.)"
+  "db.autoIncrementTypeWarn": "AUTO_INCREMENT requiere un tipo de columna entero (INT, BIGINT, etc.)",
+  "conn.tunnel": "SSH Tunnel",
+  "conn.tunnelPlaceholder": "Select SSH connection as jump host..."
 }

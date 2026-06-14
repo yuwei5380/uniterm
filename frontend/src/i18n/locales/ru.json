@@ -544,5 +544,7 @@
   "db.dropColumnConfirm": "Удалить столбец {name}? Это действие нельзя отменить.",
   "db.dropIndexConfirm": "Удалить индекс {name}? Это действие нельзя отменить.",
   "db.addPkNullableWarn": "Следующие nullable-столбцы будут установлены в NOT NULL: {columns}",
-  "db.autoIncrementTypeWarn": "AUTO_INCREMENT требует целочисленный тип столбца (INT, BIGINT и т.д.)"
+  "db.autoIncrementTypeWarn": "AUTO_INCREMENT требует целочисленный тип столбца (INT, BIGINT и т.д.)",
+  "conn.tunnel": "SSH Tunnel",
+  "conn.tunnelPlaceholder": "Select SSH connection as jump host..."
 }

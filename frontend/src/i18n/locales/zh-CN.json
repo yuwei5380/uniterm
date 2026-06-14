@@ -544,5 +544,7 @@
   "db.dropColumnConfirm": "确定要删除字段 {name} 吗？此操作不可撤销。",
   "db.dropIndexConfirm": "确定要删除索引 {name} 吗？此操作不可撤销。",
   "db.addPkNullableWarn": "以下列可空，添加主键后将自动设为 NOT NULL：{columns}",
-  "db.autoIncrementTypeWarn": "AUTO_INCREMENT 要求列为整数类型（INT、BIGINT 等）"
+  "db.autoIncrementTypeWarn": "AUTO_INCREMENT 要求列为整数类型（INT、BIGINT 等）",
+  "conn.tunnel": "SSH 隧道",
+  "conn.tunnelPlaceholder": "选择 SSH 连接作为跳板..."
 }

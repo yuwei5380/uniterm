@@ -39,6 +39,10 @@ type ConnectionConfig struct {
 	DBName string `json:"dbName,omitempty"` // default database name
 	// SSH post-login script: commands to execute after successful login
 	PostLoginScript string `json:"postLoginScript,omitempty"`
+	// SSH tunnel: reference to an existing SSH connection used as a jump host.
+	// When set, the connection goes through local port forwarding:
+	//   127.0.0.1:auto-port → tunnel SSH → target Host:Port
+	TunnelSSHConnID string `json:"tunnelSSHConnId,omitempty"`
 }
 
 // ConnectionStoreData is the top-level structure persisted to connections.json.

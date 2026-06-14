@@ -37,6 +37,7 @@ type App struct {
 	settingsStore        *store.SettingsStore
 	terminalHistoryStore *store.TerminalHistoryStore
 	syncService          *sync.SyncService
+	tunnelService        *session.TunnelService
 	mainHwnd            uintptr
 	originalWndProc     uintptr
 	wndProcCb           uintptr // keep alive to prevent GC
@@ -59,6 +60,7 @@ func (a *App) startup(ctx context.Context) {
 	}
 
 	a.sessionManager = session.NewSessionManager()
+	a.tunnelService = session.NewTunnelService()
 
 	// Discover main window HWND for RDP child window embedding
 	a.mainHwnd = a.findMainWindow()
@@ -121,6 +123,9 @@ func (a *App) startup(ctx context.Context) {
 
 func (a *App) shutdown(ctx context.Context) {
 	a.unsubclassMainWindow()
+	if a.tunnelService != nil {
+		a.tunnelService.Shutdown()
+	}
 	if a.sessionManager != nil {
 		a.sessionManager.CloseAll()
 	}
@@ -434,6 +439,41 @@ func (a *App) CreateSession(sessionType string, config session.ConnectionConfig)
 	}
 	log.Writef("[CreateSession] session created, id=%s", s.ID())
 
+	// ── SSH Tunnel ──────────────────────────────────────────────
+	if config.TunnelSSHConnID != "" && a.tunnelService != nil {
+		if a.connectionStore == nil {
+			_ = a.sessionManager.Close(s.ID())
+			return nil, fmt.Errorf("connection store not initialized")
+		}
+		data, err := a.connectionStore.Load()
+		if err != nil {
+			_ = a.sessionManager.Close(s.ID())
+			return nil, fmt.Errorf("load connections for tunnel: %w", err)
+		}
+		var tunnelSSHConfig *session.ConnectionConfig
+		for _, c := range data.Connections {
+			if c.ID == config.TunnelSSHConnID {
+				tunnelSSHConfig = &c
+				break
+			}
+		}
+		if tunnelSSHConfig == nil {
+			_ = a.sessionManager.Close(s.ID())
+			return nil, fmt.Errorf("tunnel SSH connection not found: %s", config.TunnelSSHConnID)
+		}
+
+		localPort, err := a.tunnelService.Start(s.ID(), *tunnelSSHConfig, config.Host, config.Port)
+		if err != nil {
+			_ = a.sessionManager.Close(s.ID())
+			return nil, fmt.Errorf("tunnel start: %w", err)
+		}
+		log.Writef("[CreateSession] tunnel established for session=%s via ssh=%s, localPort=%d",
+			s.ID(), config.TunnelSSHConnID, localPort)
+		config.Host = "127.0.0.1"
+		config.Port = localPort
+	}
+	// ── End SSH Tunnel ──────────────────────────────────────────
+
 	// Set parent HWND for RDP sessions
 	if rdp, ok := s.(*session.RDPSession); ok {
 		rdp.SetParentHwnd(a.mainHwnd)
@@ -523,6 +563,9 @@ func (a *App) CreateSession(sessionType string, config session.ConnectionConfig)
 func (a *App) CloseSession(sessionID string) error {
 	if a.sessionManager == nil {
 		return fmt.Errorf("session manager not initialized")
+	}
+	if a.tunnelService != nil {
+		a.tunnelService.Stop(sessionID)
 	}
 	return a.sessionManager.Close(sessionID)
 }
