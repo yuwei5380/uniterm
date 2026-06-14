@@ -97,7 +97,7 @@
           <el-dropdown trigger="click" @command="onModelChange" size="small" v-if="settingsStore.settings.ai.models.length > 0">
             <el-button size="small" class="model-btn">
               <span class="model-btn-name">{{ currentModelName }}</span>
-              <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
+              <el-icon class="dropdown-icon"><ChevronDown /></el-icon>
             </el-button>
             <template #dropdown>
               <el-dropdown-menu class="dark-dropdown">
@@ -113,8 +113,8 @@
             </template>
           </el-dropdown>
           <el-dropdown trigger="click" @command="onModeChange" size="small">
-            <el-button :type="modeButtonType" size="small">
-              {{ modeLabel }}<el-icon class="dropdown-icon"><ArrowDown /></el-icon>
+            <el-button :type="modeButtonType" size="small" class="mode-btn">
+              {{ modeLabel }}<el-icon class="dropdown-icon"><ChevronDown /></el-icon>
             </el-button>
             <template #dropdown>
               <el-dropdown-menu class="dark-dropdown">
@@ -146,7 +146,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, computed, watch, onMounted, onUnmounted } from 'vue'
-import { X, Trash2, Expand, Shrink, History, MessageSquarePlus, Search } from '@lucide/vue'
+import { X, Trash2, Expand, Shrink, History, MessageSquarePlus, Search, ChevronDown } from '@lucide/vue'
 import { useAIStore } from '../stores/aiStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useTabStore } from '../stores/tabStore'
@@ -813,7 +813,8 @@ onUnmounted(() => {
 .dropdown-icon {
   margin-left: 4px;
 }
-.model-btn {
+.model-btn,
+.mode-btn {
   padding-left: 8px;
   padding-right: 6px;
 }
