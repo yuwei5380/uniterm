@@ -46,8 +46,8 @@
           </button>
           <div v-show="moreMenuVisible" class="panel-more-menu" @click.stop>
             <div class="menu-item" @click="emit('duplicate', panel.id); moreMenuVisible = false">{{ t('terminal.duplicate') }}</div>
-            <div class="menu-item" @click="connectSftp(); moreMenuVisible = false">{{ t('sidebar.connectSftp') }}</div>
-            <div class="menu-item" @click="connectMonitor(); moreMenuVisible = false">{{ t('sidebar.connectMonitor') }}</div>
+            <div v-if="panel.type === 'ssh'" class="menu-item" @click="connectSftp(); moreMenuVisible = false">{{ t('sidebar.connectSftp') }}</div>
+            <div v-if="panel.type === 'ssh'" class="menu-item" @click="connectMonitor(); moreMenuVisible = false">{{ t('sidebar.connectMonitor') }}</div>
             <div class="menu-item" @click="triggerSearch(); moreMenuVisible = false">{{ t('terminal.searchText') }}</div>
           </div>
         </div>
