@@ -55,6 +55,11 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
+  function getStatus(id: string): SessionStatus {
+    const s = sessionState.sessions.get(id)
+    return s ? s.status : 'disconnected'
+  }
+
   function appendData(id: string, chunk: string) {
     const s = sessionState.sessions.get(id)
     if (s) {
@@ -103,6 +108,7 @@ export const useSessionStore = defineStore('session', () => {
     sessions: sessionState.sessions,
     initSession,
     updateStatus,
+    getStatus,
     appendData,
     getData,
     getChunkCount,

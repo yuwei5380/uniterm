@@ -117,6 +117,16 @@ export function disposeTerminal(sessionId: string): void {
   terminals.delete(sessionId)
 }
 
+// Transfer a terminal from oldSessionId to newSessionId so the
+// terminal buffer is preserved across session reconnects.
+export function transferTerminal(oldSessionId: string, newSessionId: string): boolean {
+  const managed = terminals.get(oldSessionId)
+  if (!managed) return false
+  terminals.delete(oldSessionId)
+  terminals.set(newSessionId, managed)
+  return true
+}
+
 export function attachTerminal(sessionId: string, container: HTMLElement): void {
   const managed = terminals.get(sessionId)
   if (!managed) return

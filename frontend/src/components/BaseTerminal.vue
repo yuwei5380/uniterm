@@ -93,6 +93,7 @@ import {
   attachTerminal,
   detachTerminal,
   getManagedTerminal,
+  transferTerminal,
 } from '../services/terminalManager'
 import { getXtermTheme } from '../composables/useTerminal'
 import { useTerminalInput } from '../composables/useTerminalInput'
@@ -991,6 +992,18 @@ onActivated(() => {
     }
   }
 
+  // Sync retryOnEnter from stored session status. The session:status
+  // event is guarded by isActive (which was false during deactivation),
+  // so if the session disconnected while we were cached, retryOnEnter
+  // was never set and Enter would do nothing despite the reconnect
+  // message being replayed above.
+  if (props.sessionId) {
+    const st = sessionStore.getStatus(props.sessionId)
+    if (st === 'disconnected' || st === 'error') {
+      retryOnEnter = true
+    }
+  }
+
   isActive.value = true
   // Re-attach terminal element — another component may have moved it while
   // we were cached (e.g. merge→drag-out→re-merge keeps panelId, KeepAlive
@@ -1038,17 +1051,41 @@ onDeactivated(() => {
 watch(() => props.sessionId, (newId, oldId) => {
   if (oldId && oldId !== newId) {
     if (terminalRef.value) detachTerminal(oldId, terminalRef.value)
-    releaseTerminal(oldId, terminalInstanceRef)
     disposeZmodemService(oldId)
+    // Transfer the terminal to the new sessionId so scrollback is
+    // preserved across reconnects. releaseTerminal is intentionally
+    // skipped — we want to keep the same terminal instance alive.
+    if (newId) transferTerminal(oldId, newId)
   }
   // Reset write tracking when session changes so onActivated replay
   // starts from the correct offset for the new session.
   writtenChunks = 0
   if (newId && (props.mode === 'ssh' || props.mode === 'local')) {
     initZmodemService(newId)
-    terminal = acquireTerminal(newId, terminalInstanceRef, getTerminalOptions())
+    terminal = getManagedTerminal(newId)?.terminal ?? null
     if (terminalRef.value) {
       attachTerminal(newId, terminalRef.value)
+    }
+    // Re-create terminalInput with the new terminal reference.
+    // Otherwise it would still hold the old (disposed) terminal and
+    // cursor position tracking returns {0,0}, pinning the suggestion
+    // popup to the top-left corner.
+    if (props.mode === 'ssh') {
+      const smartOn = settingsStore.settings.terminal.smartCompletion ?? true
+      terminalInput = useTerminalInput(terminal, {
+        mode: props.mode,
+        sessionId: newId,
+        enableHistory: smartOn,
+        onHistoryExtract: (command: string) => {
+          suggestions.addHistoryCommand(command)
+        },
+        onResetSuppress: () => {
+          suggestions.resetSuppress()
+        },
+      })
+      if (smartOn) {
+        suggestions.loadHistory()
+      }
     }
     // Re-bind onData/keyHandler on the new terminal
     bindListeners?.()
