@@ -7,23 +7,11 @@
       ></div>
 
       <TabItem
-        v-if="tab.type !== 'workspace'"
         :tab="tab"
         :is-active="tab.id === activeTabId"
         @activate="setActiveTab"
         @close="(id: string) => $emit('close-tab', id)"
         @toggle-ai-lock="(panelId: string) => $emit('toggle-ai-lock', panelId)"
-        @dragstart="(e: DragEvent, tabId: string) => $emit('tab-dragstart', e, tabId)"
-        @dragover.prevent="(e: DragEvent) => onTabDragOver(e, index)"
-        @dragleave="onTabDragLeave"
-        @drop="(e: DragEvent) => onTabDrop(e, tab.id, index)"
-      />
-      <WorkspaceTabItem
-        v-else-if="tab.type === 'workspace'"
-        :tab="tab"
-        :is-active="tab.id === activeTabId"
-        @activate="setActiveTab"
-        @close="(id: string) => $emit('close-tab', id)"
         @dragstart="(e: DragEvent, tabId: string) => $emit('tab-dragstart', e, tabId)"
         @dragover.prevent="(e: DragEvent) => onTabDragOver(e, index)"
         @dragleave="onTabDragLeave"
@@ -68,7 +56,6 @@ import { useTabStore } from '../stores/tabStore'
 import { usePanelStore } from '../stores/panelStore'
 import { useI18n } from '../i18n'
 import TabItem from './TabItem.vue'
-import WorkspaceTabItem from './WorkspaceTabItem.vue'
 
 const tabStore = useTabStore()
 const panelStore = usePanelStore()

@@ -467,7 +467,7 @@ function onToggleAiLock(panelId: string) {
 }
 
 function onTabDragStart(_e: DragEvent, _tabId: string) {
-  // Data is set in TabItem / WorkspaceTabItem
+  // Data is set in TabItem
 }
 
 async function createLocalTerminal(shellPath?: string) {

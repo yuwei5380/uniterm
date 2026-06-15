@@ -23,7 +23,7 @@
           </template>
         </span>
         <span v-if="item.description" class="suggestion-desc">{{ item.description }}</span>
-        <button v-if="item.id" class="delete-btn" @click.stop="onRemove(item.id)">×</button>
+        <button v-if="item.id" class="delete-btn" @click.stop="onRemove(item.id)"><X :size="12" /></button>
       </div>
     </div>
     <!-- AI section (fixed at bottom) -->
@@ -47,6 +47,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { X } from '@lucide/vue'
 import type { SuggestionItem } from '../composables/useSuggestions'
 
 const props = defineProps<{

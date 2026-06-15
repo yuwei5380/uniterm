@@ -15,23 +15,11 @@
         ></div>
 
         <TabItem
-          v-if="tab.type !== 'workspace'"
           :tab="tab"
           :is-active="tab.id === activeTabId"
           @activate="setActiveTab"
           @close="closeTab"
           @toggle-ai-lock="onToggleAiLock"
-          @dragstart="onTabDragStart($event, tab.id)"
-          @dragover.prevent="onTabDragOver($event, index)"
-          @dragleave="onTabDragLeave"
-          @drop="onTabDrop($event, tab.id, index)"
-        />
-        <WorkspaceTabItem
-          v-else-if="tab.type === 'workspace'"
-          :tab="tab"
-          :is-active="tab.id === activeTabId"
-          @activate="setActiveTab"
-          @close="closeTab"
           @dragstart="onTabDragStart($event, tab.id)"
           @dragover.prevent="onTabDragOver($event, index)"
           @dragleave="onTabDragLeave"
@@ -80,7 +68,6 @@ import { usePanelStore } from '../stores/panelStore'
 import { useI18n } from '../i18n'
 import { SftpCancelTransfer, CloseSession, RDPHide } from '../../wailsjs/go/main/App'
 import TabItem from './TabItem.vue'
-import WorkspaceTabItem from './WorkspaceTabItem.vue'
 
 const tabStore = useTabStore()
 const panelStore = usePanelStore()
@@ -189,7 +176,7 @@ function onToggleAiLock(panelId: string) {
 }
 
 function onTabDragStart(_e: DragEvent, _tabId: string) {
-  // Data is set in TabItem/WorkspaceTabItem
+  // Data is set in TabItem
 }
 
 function onTabDragOver(e: DragEvent, index: number) {

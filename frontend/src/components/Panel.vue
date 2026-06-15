@@ -51,7 +51,7 @@
             <div class="menu-item" @click="triggerSearch(); moreMenuVisible = false">{{ t('terminal.searchText') }}</div>
           </div>
         </div>
-        <button class="panel-close" @click.stop="emit('close', panel.id)">×</button>
+        <button class="panel-close" @click.stop="emit('close', panel.id)"><X :size="14" /></button>
       </div>
     </div>
     <BaseTerminal
@@ -68,7 +68,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, nextTick, onMounted, onUnmounted } from 'vue'
-import { Radio, Sparkles, MoreHorizontal } from '@lucide/vue'
+import { Radio, Sparkles, MoreHorizontal, X } from '@lucide/vue'
 import BaseTerminal from './BaseTerminal.vue'
 import { useTabStore } from '../stores/tabStore'
 import { usePanelStore } from '../stores/panelStore'

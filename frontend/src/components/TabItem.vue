@@ -8,11 +8,20 @@
     @dragstart="onDragStart"
     @contextmenu="onContextMenu"
   >
+    <button
+      v-if="isActive"
+      class="tab-close"
+      @click.stop="$emit('close', tab.id)"
+    ><X /></button>
+    <component
+      v-else
+      :is="tabIcon"
+      class="tab-type-icon"
+    />
     <span v-if="!editing" class="tab-name" @dblclick.stop="startEdit">
-      <component :is="tabIcon" class="tab-type-icon" :size="14" />
-      <span v-if="hasActiveTransfers" class="transfer-indicator" title="Transferring...">&#8595;</span>
+      <ArrowDownUp v-if="hasActiveTransfers" class="transfer-indicator" :size="14" title="Transferring..." />
       {{ tab.name }}
-    </span>
+    </span> 
     <input
       v-else
       ref="editInputRef"
@@ -32,11 +41,13 @@
     >
       <Sparkles :size="14" />
     </button>
-    <button
-      v-if="isActive || showClose"
-      class="tab-close"
-      @click.stop="$emit('close', tab.id)"
-    >×</button>
+    <span
+      v-else-if="tab.type === 'workspace' && isAILocked"
+      class="tab-ai-lock locked"
+      title="AI locked to a panel in this workspace"
+    >
+      <Sparkles :size="14" />
+    </span>
 
     <Teleport to="body">
       <div
@@ -67,11 +78,11 @@ import { useTabStore } from '../stores/tabStore'
 import { usePanelStore } from '../stores/panelStore'
 import { useI18n } from '../i18n'
 import { CreateSession } from '../../wailsjs/go/main/App'
-import type { TerminalTab, SettingsTab, SFTPTab, RDPTab, VNCTab, SPICETab, DBTab, MonitorTab } from '../types/workspace'
-import { SquareTerminal, Laptop, FolderUp, Monitor, MonitorCloud, Settings, Sparkles, Database, Activity } from '@lucide/vue'
+import type { TerminalTab, SettingsTab, SFTPTab, RDPTab, VNCTab, SPICETab, DBTab, MonitorTab, WorkspaceTab } from '../types/workspace'
+import { SquareTerminal, Laptop, FolderUp, Monitor, MonitorCloud, Settings, Sparkles, Database, Activity, X, ArrowDownUp, LayoutDashboard } from '@lucide/vue'
 
 const props = defineProps<{
-  tab: TerminalTab | SettingsTab | SFTPTab | RDPTab | VNCTab | SPICETab | DBTab | MonitorTab
+  tab: TerminalTab | SettingsTab | SFTPTab | RDPTab | VNCTab | SPICETab | DBTab | MonitorTab | WorkspaceTab
   isActive: boolean
   showClose?: boolean
 }>()
@@ -93,11 +104,6 @@ const editing = ref(false)
 const editName = ref('')
 const editInputRef = ref<HTMLInputElement>()
 
-const isAILocked = computed(() => {
-  if (props.tab.type !== 'terminal') return false
-  return tabStore.aiLockedPanelId === props.tab.panelId
-})
-
 const tabIcon = computed(() => {
   const t = props.tab
   if (t.type === 'settings') return Settings
@@ -107,6 +113,7 @@ const tabIcon = computed(() => {
   if (t.type === 'spice') return MonitorCloud
   if (t.type === 'database') return Database
   if (t.type === 'monitor') return Activity
+  if (t.type === 'workspace') return LayoutDashboard
   if (t.type === 'terminal') {
     const panel = panelStore.getPanel(t.panelId)
     if (panel?.type === 'local') return Laptop
@@ -115,19 +122,25 @@ const tabIcon = computed(() => {
   return null
 })
 
+const isAILocked = computed(() => {
+  if (props.tab.type === 'workspace') {
+    if (!tabStore.aiLockedPanelId) return false
+    return props.tab.panelIds.includes(tabStore.aiLockedPanelId)
+  }
+  if (props.tab.type !== 'terminal') return false
+  return tabStore.aiLockedPanelId === props.tab.panelId
+})
+
+
 const hasActiveTransfers = computed(() => {
+  if (props.tab.type === 'workspace') return false
   const tasks = panelStore.getTransferTasks(props.tab.panelId)
   return tasks.some(t => t.status === 'running' || t.status === 'paused')
 })
 
 function onDragStart(e: DragEvent) {
   e.dataTransfer?.setData('application/tab-id', props.tab.id)
-  if (props.tab.type === 'terminal') {
-    e.dataTransfer?.setData('application/tab-type', 'terminal')
-  }
-  if (props.tab.type === 'sftp') {
-    e.dataTransfer?.setData('application/tab-type', 'sftp')
-  }
+  e.dataTransfer?.setData('application/tab-type', props.tab.type)
   if (props.isActive) {
     e.dataTransfer?.setData('application/is-active-tab', '1')
   }
@@ -212,7 +225,7 @@ function closeLeft() {
 }
 
 async function duplicateTab() {
-  const panel = panelStore.getPanel(props.tab.panelId)
+  const panel = panelStore.getPanel((props.tab as TerminalTab).panelId)
   if (!panel) return
   const newPanel = panelStore.createPanel(panel.config, panel.type)
   newPanel.title = panel.title
@@ -230,7 +243,7 @@ async function duplicateTab() {
 }
 
 function openSftp() {
-  const panel = panelStore.getPanel(props.tab.panelId)
+  const panel = panelStore.getPanel((props.tab as TerminalTab).panelId)
   if (panel) {
     window.dispatchEvent(new CustomEvent('app:connect-sftp', { detail: panel }))
   }
@@ -238,7 +251,7 @@ function openSftp() {
 }
 
 function openMonitor() {
-  const panel = panelStore.getPanel(props.tab.panelId)
+  const panel = panelStore.getPanel((props.tab as TerminalTab).panelId)
   if (panel) {
     window.dispatchEvent(new CustomEvent('app:connect-monitor', { detail: panel }))
   }
@@ -246,7 +259,7 @@ function openMonitor() {
 }
 
 function triggerSearch() {
-  window.dispatchEvent(new CustomEvent('terminal:open-search', { detail: { panelId: props.tab.panelId } }))
+  window.dispatchEvent(new CustomEvent('terminal:open-search', { detail: { panelId: (props.tab as TerminalTab).panelId } }))
   closeContextMenu()
 }
 
@@ -308,13 +321,18 @@ onUnmounted(() => {
 }
 .tab-type-icon {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
   color: var(--text-muted);
 }
 .tab-item.active .tab-type-icon {
   color: var(--accent);
 }
 .transfer-indicator {
-  font-size: 12px;
   color: var(--accent);
   flex-shrink: 0;
   line-height: 1;
@@ -337,17 +355,11 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 3px;
-  opacity: 0;
   display: inline-flex;
   align-items: center;
 }
 .tab-ai-lock .ai-lock-icon {
   display: block;
-}
-.tab-item:hover .tab-ai-lock,
-.tab-item.active .tab-ai-lock,
-.tab-ai-lock.locked {
-  opacity: 1;
 }
 .tab-ai-lock:hover {
   color: var(--text-primary);
@@ -360,8 +372,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
   padding: 0;
   background: transparent;
   border: none;

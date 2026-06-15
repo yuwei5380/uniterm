@@ -357,10 +357,9 @@ export const useTabStore = defineStore('tab', () => {
       wsTab.activePanelId = wsTab.panelIds[0] || null
     }
 
-    // Clear AI lock if needed
-    if (tabState.aiLockedPanelId === panelId) {
-      tabState.aiLockedPanelId = null
-    }
+    // Keep AI lock when panel is detached from workspace — the
+    // locked session should remain locked regardless of whether
+    // the panel is in a workspace or standalone tab.
 
     if (wsTab.panelIds.length === 1) {
       // Auto-convert remaining workspace to terminal tab
