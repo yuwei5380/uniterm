@@ -251,10 +251,11 @@ func (s *SSHSession) startKeepAlive() {
 						done <- fmt.Errorf("panic: %v", r)
 					}
 				}()
-				// Use session channel request instead of global request.
-				// OpenSSH handles keepalive@openssh.com on the session channel,
-				// and some middleboxes drop or mishandle global requests.
-				_, err := s.session.SendRequest("keepalive@openssh.com", true, nil)
+				// Use global request for keepalive, matching standard OpenSSH
+				// ServerAliveInterval behavior. Session channel requests for
+				// keepalive@openssh.com are not recognized by most SSH servers,
+				// causing timeouts that eventually disconnect.
+				_, _, err := s.client.SendRequest("keepalive@openssh.com", true, nil)
 				done <- err
 			}()
 
@@ -289,17 +290,21 @@ func (s *SSHSession) Write(data []byte) error {
 	return err
 }
 
+// Disconnect tears down the SSH session. It uses sync.Once so the entire
+// teardown sequence executes exactly once, regardless of how many goroutines
+// call Disconnect concurrently (session.Wait, readLoop error, keepalive
+// failure, or explicit user close).
 func (s *SSHSession) Disconnect() error {
 	s.quitOnce.Do(func() {
 		close(s.quit)
+		if s.session != nil {
+			s.session.Close()
+		}
+		if s.client != nil {
+			s.client.Close()
+		}
+		s.setStatus(StatusDisconnected)
 	})
-	if s.session != nil {
-		s.session.Close()
-	}
-	if s.client != nil {
-		s.client.Close()
-	}
-	s.setStatus(StatusDisconnected)
 	return nil
 }
 
