@@ -83,6 +83,8 @@ export function LoadAISessions():Promise<store.AISessionData>;
 
 export function LoadConnections():Promise<session.ConnectionStoreData>;
 
+export function LoadQuickCommands():Promise<store.QuickCommandData>;
+
 export function LoadSettings():Promise<store.AppSettings>;
 
 export function LoadTerminalHistory():Promise<Array<store.HistoryEntry>>;
@@ -116,6 +118,8 @@ export function SaveAISessions(arg1:store.AISessionData):Promise<void>;
 export function SaveConnections(arg1:session.ConnectionStoreData):Promise<void>;
 
 export function SaveFileDialog(arg1:string):Promise<string>;
+
+export function SaveQuickCommands(arg1:store.QuickCommandData):Promise<void>;
 
 export function SaveSettings(arg1:store.AppSettings):Promise<void>;
 

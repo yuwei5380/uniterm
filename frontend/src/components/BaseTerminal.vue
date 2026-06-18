@@ -143,6 +143,16 @@ let terminalInput: ReturnType<typeof useTerminalInput> | null = null
 let terminal: Terminal | null = null
 let onDataDispose: { dispose(): void } | null = null
 let keyHandlerDispose: { dispose(): void } | null = null
+// Generation counter to detect and suppress stale onData callbacks.
+// Incremented each time bindListeners() registers a new handler; the
+// callback captures a snapshot and bails out if it no longer matches.
+// This guards against double-input after SSH reconnect in case xterm.js
+// dispose() fails to remove the old listener from its internal array.
+let onDataGeneration = 0
+// Rate-limit onData debug logging: log at most once per second.
+let lastOnDataLogTime = 0
+// Rate-limit session:data debug logging
+let lastSessionDataLogTime = 0
 let resizeObserver: ResizeObserver | null = null
 let intersectionObserver: IntersectionObserver | null = null
 // Track how many sessionStore chunks have been written to the terminal
@@ -627,8 +637,29 @@ onMounted(() => {
     keyHandlerDispose?.dispose()
     keyHandlerDispose = null
 
+    // Bump generation so any still-live stale callback becomes a no-op.
+    // This is a defense-in-depth measure in case xterm.js's dispose()
+    // fails to remove the old listener from its internal array.
+    const gen = ++onDataGeneration
+    const sidNow = props.sessionId
+    const modeNow = props.mode
+    FrontendLog('bindListeners', `sessionId=${sidNow} mode=${modeNow} gen=${gen}`)
+
     // Input handling
     onDataDispose = terminal.onData((data) => {
+      // ── Stale callback guard ──
+      // If this callback no longer matches the current generation, it
+      // means bindListeners() was called again and this handler should
+      // have been disposed. Bail out to prevent double SessionWrite.
+      if (gen !== onDataGeneration) {
+        const now = Date.now()
+        if (now - lastOnDataLogTime > 1000) {
+          lastOnDataLogTime = now
+          FrontendLog('onData', `STALE gen=${gen} current=${onDataGeneration} sid=${sidNow} -> DROPPED`)
+        }
+        return
+      }
+
       if (props.mode === 'ssh' || props.mode === 'local') {
       if (retryOnEnter && (data === '\r' || data === '\n')) {
         retryOnEnter = false
@@ -718,6 +749,14 @@ onMounted(() => {
       const sid = props.sessionId
       const inAlt = terminalInput?.isInAlternateScreen() ?? false
       if (sid) {
+        // Rate-limited debug log for onData → SessionWrite
+        const now = Date.now()
+        if (now - lastOnDataLogTime > 1000) {
+          lastOnDataLogTime = now
+          const preview = data.length === 1 ? JSON.stringify(data) : JSON.stringify(data.slice(0, 10))
+          FrontendLog('onData', `gen=${gen} sid=${sid} mode=${modeNow} data=${preview}`)
+        }
+
         if (props.broadcastActive && props.workspaceId) {
           const tab = tabStore.tabs.find(t => t.id === props.workspaceId)
           if (tab && tab.type === 'workspace') {
@@ -793,6 +832,14 @@ onMounted(() => {
   unsubscribe = EventsOn('session:data', (payload: { id: string; data: string }) => {
     if (!isActive.value) return
     if (payload.id !== props.sessionId || !terminal) return
+
+    // Rate-limited debug log for session:data writes
+    const _sdNow = Date.now()
+    if (_sdNow - lastSessionDataLogTime > 1000) {
+      lastSessionDataLogTime = _sdNow
+      const _sdPreview = payload.data.length <= 20 ? JSON.stringify(payload.data) : JSON.stringify(payload.data.slice(0, 20)) + '…'
+      FrontendLog('session:data', `id=${payload.id} len=${payload.data.length} data=${_sdPreview}`)
+    }
 
     // 取消后 2 秒内吞掉所有数据，防止残余二进制乱码
     if (Date.now() < zmodemCancellingUntil) {
@@ -885,6 +932,7 @@ onMounted(() => {
       if (!isActive.value) return
       if (payload.id !== props.sessionId) return
       if (payload.status === 'connected') {
+        FrontendLog('session:status', `connected id=${payload.id} onDataGen=${onDataGeneration}`)
         retryOnEnter = false
         if (props.onSessionStatus) {
           props.onSessionStatus(payload.status)
@@ -896,12 +944,14 @@ onMounted(() => {
         }
         resize()
       } else if (payload.status === 'error') {
+        FrontendLog('session:status', `error id=${payload.id}`)
         retryOnEnter = true
         if (props.onSessionStatus) {
           props.onSessionStatus(payload.status)
         }
         terminal?.write('\r\n\x1b[31mConnection failed. Press Enter to retry.\x1b[0m\r\n')
       } else if (payload.status === 'disconnected') {
+        FrontendLog('session:status', `disconnected id=${payload.id}`)
         retryOnEnter = true
         if (props.onSessionStatus) {
           props.onSessionStatus(payload.status)
@@ -1004,6 +1054,7 @@ onMounted(() => {
 
 onActivated(() => {
   // Component restored from KeepAlive cache.
+  FrontendLog('onActivated', `sessionId=${props.sessionId} mode=${props.mode} onDataGen=${onDataGeneration}`)
 
   // Replay session data that arrived while deactivated BEFORE
   // setting isActive = true. The session:data handler gates on
@@ -1043,6 +1094,7 @@ onActivated(() => {
   }
   // Re-register onData/keyHandler listeners that were disposed in onDeactivated.
   bindListeners?.()
+  FrontendLog('onActivated', `bindListeners done gen=${onDataGeneration}`)
   // Terminal dimensions may be stale after tab switch; recalculate.
   resize()
   // Re-initialize zmodem service only if it was disposed in onDeactivated.
@@ -1059,6 +1111,7 @@ onActivated(() => {
 onDeactivated(() => {
   // Component deactivated by KeepAlive (e.g. terminal tab moved into workspace).
   // Mark inactive so session event handlers become no-ops.
+  FrontendLog('onDeactivated', `sessionId=${props.sessionId} mode=${props.mode} gen=${onDataGeneration}`)
   isActive.value = false
   // Dispose per-component listeners to prevent duplicate input when another
   // BaseTerminal mounts with the same shared terminal instance.
@@ -1066,6 +1119,7 @@ onDeactivated(() => {
   onDataDispose = null
   keyHandlerDispose?.dispose()
   keyHandlerDispose = null
+  FrontendLog('onDeactivated', `listeners disposed gen=${onDataGeneration}`)
 
   // If a transfer is still active, keep the service running so the background
   // transfer continues. Otherwise dispose and restore backend state.
@@ -1078,6 +1132,7 @@ onDeactivated(() => {
 
 // Watch sessionId changes to rebind session data
 watch(() => props.sessionId, (newId, oldId) => {
+  FrontendLog('watch:sessionId', `old=${oldId} new=${newId} mode=${props.mode} isActive=${isActive.value} onDataGen=${onDataGeneration}`)
   if (oldId && oldId !== newId) {
     if (terminalRef.value) detachTerminal(oldId, terminalRef.value)
     disposeZmodemService(oldId)
@@ -1116,6 +1171,7 @@ watch(() => props.sessionId, (newId, oldId) => {
     }
     // Re-bind onData/keyHandler on the new terminal
     bindListeners?.()
+    FrontendLog('watch:sessionId', `bindListeners done gen=${onDataGeneration}`)
     const delays = [200, 400, 600, 800, 1000, 1500, 2000]
     delays.forEach((delay) => {
       setTimeout(() => resize(), delay)

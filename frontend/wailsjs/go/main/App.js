@@ -154,6 +154,10 @@ export function LoadConnections() {
   return window['go']['main']['App']['LoadConnections']();
 }
 
+export function LoadQuickCommands() {
+  return window['go']['main']['App']['LoadQuickCommands']();
+}
+
 export function LoadSettings() {
   return window['go']['main']['App']['LoadSettings']();
 }
@@ -220,6 +224,10 @@ export function SaveConnections(arg1) {
 
 export function SaveFileDialog(arg1) {
   return window['go']['main']['App']['SaveFileDialog'](arg1);
+}
+
+export function SaveQuickCommands(arg1) {
+  return window['go']['main']['App']['SaveQuickCommands'](arg1);
 }
 
 export function SaveSettings(arg1) {
