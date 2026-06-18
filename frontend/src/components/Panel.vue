@@ -75,7 +75,7 @@ import { useTabStore } from '../stores/tabStore'
 import { usePanelStore } from '../stores/panelStore'
 import { useSessionStore } from '../stores/sessionStore'
 import { useSettingsStore } from '../stores/settingsStore'
-import { CreateSession, FrontendLog } from '../../wailsjs/go/main/App'
+import { CreateSession } from '../../wailsjs/go/main/App'
 import { useI18n } from '../i18n'
 import type { Panel } from '../types/workspace'
 import type { ConnectionConfig } from '../types/session'
@@ -169,7 +169,6 @@ function onSessionStatus(status: string) {
 }
 
 async function retryConnection() {
-  FrontendLog('retryConnection', `panelId=${props.panel.id} type=${props.panel.type} oldSessionId=${props.panel.sessionId}`)
   if (props.panel.type === 'local') {
     // Local terminal: reconnect with the same shell used when created
     baseTerminalRef.value?.write('\r\n\x1b[33mRestarting local shell...\x1b[0m\r\n')
@@ -177,7 +176,6 @@ async function retryConnection() {
       const shellPath = props.panel.config?.shellPath || ''
       const config = { ...props.panel.config, type: 'local', shellPath } as ConnectionConfig
       const info = await CreateSession('local', config)
-      FrontendLog('retryConnection', `local session created newId=${info.id}`)
       panelStore.bindSession(props.panel.id, info.id)
       sessionStore.initSession(info.id)
     } catch (e: any) {
@@ -190,10 +188,8 @@ async function retryConnection() {
   baseTerminalRef.value?.write('\r\n\x1b[33mReconnecting...\x1b[0m\r\n')
   try {
     const info = await CreateSession(props.panel.config.type, props.panel.config)
-    FrontendLog('retryConnection', `session created newId=${info.id} type=${props.panel.config.type}`)
     panelStore.bindSession(props.panel.id, info.id)
     sessionStore.initSession(info.id)
-    FrontendLog('retryConnection', `bindSession done — watch should trigger now`)
   } catch (e: any) {
     baseTerminalRef.value?.write(`\r\n\x1b[31mReconnect failed: ${e}\x1b[0m\r\n`)
     baseTerminalRef.value?.setRetryOnEnter(true)
