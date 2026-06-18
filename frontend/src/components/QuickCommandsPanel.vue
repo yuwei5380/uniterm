@@ -1,21 +1,24 @@
 <template>
   <div class="quick-commands-panel">
-    <!-- Top toolbar -->
-    <div class="qc-toolbar">
-      <input
+    <!-- Search box -->
+    <div class="qc-search-box">
+      <el-input
         v-model="searchQuery"
-        class="qc-search"
         :placeholder="t('quickCommands.searchPlaceholder')"
-        @click.stop
+        clearable
+        size="small"
       />
-      <div class="qc-toolbar-actions">
-        <button class="qc-toolbar-btn" @click="addGroup" :title="t('quickCommands.addGroup')">
-          <FolderPlus :size="15" />
-        </button>
-        <button class="qc-toolbar-btn" @click="addCommand()" :title="t('quickCommands.addCommand')">
-          <Plus :size="15" />
-        </button>
-      </div>
+    </div>
+    <!-- Action bar -->
+    <div class="qc-action-bar">
+      <button class="qc-action-btn-text" @click="addGroup">
+        <FolderPlus :size="14" />
+        <span>{{ t('quickCommands.addGroup') }}</span>
+      </button>
+      <button class="qc-action-btn-text" @click="addCommand()">
+        <Plus :size="14" />
+        <span>{{ t('quickCommands.addCommand') }}</span>
+      </button>
     </div>
 
     <!-- Command list -->
@@ -339,55 +342,33 @@ function doDeleteGroup(deleteCommands: boolean) {
   overflow: hidden;
 }
 
-.qc-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-color);
+.qc-search-box {
+  padding: 0 10px 8px;
   flex-shrink: 0;
 }
 
-.qc-search {
-  flex: 1;
-  height: 26px;
-  padding: 0 8px;
-  font-size: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-input, var(--bg-secondary));
-  color: var(--text-primary);
-  outline: none;
-  min-width: 0;
-}
-
-.qc-search::placeholder {
-  color: var(--text-muted);
-}
-
-.qc-search:focus {
-  border-color: var(--accent-color);
-}
-
-.qc-toolbar-actions {
+.qc-action-bar {
   display: flex;
   gap: 2px;
+  padding: 0 10px 6px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.qc-toolbar-btn {
-  width: 26px;
-  height: 26px;
+.qc-action-btn-text {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: transparent;
   border: none;
   border-radius: 4px;
-  background: transparent;
-  color: var(--text-muted);
   cursor: pointer;
 }
 
-.qc-toolbar-btn:hover {
+.qc-action-btn-text:hover {
   color: var(--text-primary);
   background: var(--bg-hover);
 }
