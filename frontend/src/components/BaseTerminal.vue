@@ -568,7 +568,7 @@ onMounted(() => {
     terminalInput = useTerminalInput(terminal, {
       mode: props.mode,
       sessionId: props.sessionId,
-      enableHistory: smartOn,
+      enableHistory: true,  // was: smartOn
       onHistoryExtract: (command: string) => {
         suggestions.addHistoryCommand(command)
       },
@@ -576,10 +576,7 @@ onMounted(() => {
         suggestions.resetSuppress()
       },
     })
-    // Load history on startup only when smart completion is enabled
-    if (smartOn) {
-      suggestions.loadHistory()
-    }
+    suggestions.loadHistory()
   }
 
   if (props.mode === 'ssh' || props.mode === 'local') {
@@ -1107,7 +1104,7 @@ watch(() => props.sessionId, (newId, oldId) => {
       terminalInput = useTerminalInput(terminal, {
         mode: props.mode,
         sessionId: newId,
-        enableHistory: smartOn,
+        enableHistory: true,  // was: smartOn
         onHistoryExtract: (command: string) => {
           suggestions.addHistoryCommand(command)
         },
@@ -1115,9 +1112,7 @@ watch(() => props.sessionId, (newId, oldId) => {
           suggestions.resetSuppress()
         },
       })
-      if (smartOn) {
-        suggestions.loadHistory()
-      }
+      suggestions.loadHistory()
     }
     // Re-bind onData/keyHandler on the new terminal
     bindListeners?.()
