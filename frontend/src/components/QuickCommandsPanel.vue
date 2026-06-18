@@ -56,7 +56,7 @@
               <div v-if="cmd.name" class="qc-item-name">{{ cmd.name }}</div>
               <div class="qc-item-cmd" :class="{ 'qc-item-cmd-only': !cmd.name }">{{ cmd.command }}</div>
             </div>
-            <div class="qc-item-actions" :class="{ visible: selectedId === cmd.id || hoveredId === cmd.id }">
+            <div v-if="selectedId === cmd.id || hoveredId === cmd.id" class="qc-item-actions">
               <button class="qc-action-btn run" @click.stop="runCommand(cmd)" :title="t('quickCommands.run')">
                 <Play :size="14" />
               </button>
@@ -132,7 +132,7 @@
               <div v-if="cmd.name" class="qc-item-name">{{ cmd.name }}</div>
               <div class="qc-item-cmd" :class="{ 'qc-item-cmd-only': !cmd.name }">{{ cmd.command }}</div>
             </div>
-            <div class="qc-item-actions" :class="{ visible: selectedId === cmd.id || hoveredId === cmd.id }">
+            <div v-if="selectedId === cmd.id || hoveredId === cmd.id" class="qc-item-actions">
               <button class="qc-action-btn run" @click.stop="runCommand(cmd)" :title="t('quickCommands.run')">
                 <Play :size="14" />
               </button>
@@ -616,7 +616,8 @@ watch(searchQuery, (q) => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 6px 10px;
+  min-height: 36px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.12s ease;
@@ -672,14 +673,6 @@ watch(searchQuery, (q) => {
   display: flex;
   gap: 2px;
   flex-shrink: 0;
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 0.12s ease, visibility 0.12s ease;
-}
-
-.qc-item-actions.visible {
-  visibility: visible;
-  opacity: 1;
 }
 
 .qc-action-btn {

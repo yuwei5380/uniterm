@@ -10,7 +10,7 @@
   /* Text */
   --text-primary: #e6e8ed;
   --text-secondary: #9ea3ae;
-  --text-muted: #737984;
+  --text-muted: #949aa5;
   --text-disabled: #525760;
 
   /* Accent - electric cyan */
@@ -78,7 +78,7 @@
 
   --text-primary: #e2e8f4;
   --text-secondary: #94a3b8;
-  --text-muted: #6b7590;
+  --text-muted: #8e97a8;
   --text-disabled: #4a5468;
 
   --accent: #38bdf8;
@@ -128,7 +128,7 @@
   /* Text - standard dark grays */
   --text-primary: #1a1a1a;
   --text-secondary: #5a5a5a;
-  --text-muted: #8a8a8a;
+  --text-muted: #6e6e6e;
   --text-disabled: #b0b0b0;
 
   /* Accent - Windows-style blue */
