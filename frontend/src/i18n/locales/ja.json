@@ -71,6 +71,7 @@
   "terminal.duplicate": "セッションを複製",
   "terminal.more": "さらに表示",
   "terminal.searchText": "テキスト検索",
+  "terminal.uploadFileRz": "ファイルアップロード(rz -be)",
   "terminal.askAI": "AI に質問",
   "terminal.copy": "コピー",
   "terminal.copyAndPaste": "コピーして貼り付け",

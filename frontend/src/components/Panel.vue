@@ -47,6 +47,7 @@
           <div v-show="moreMenuVisible" class="panel-more-menu" @click.stop>
             <div class="menu-item" @click="emit('duplicate', panel.id); moreMenuVisible = false">{{ t('terminal.duplicate') }}</div>
             <div v-if="panel.type === 'ssh'" class="menu-item" @click="connectSftp(); moreMenuVisible = false">{{ t('sidebar.connectSftp') }}</div>
+            <div v-if="panel.type === 'ssh'" class="menu-item" @click="uploadFileRz(); moreMenuVisible = false">{{ t('terminal.uploadFileRz') }}</div>
             <div v-if="panel.type === 'ssh'" class="menu-item" @click="connectMonitor(); moreMenuVisible = false">{{ t('sidebar.connectMonitor') }}</div>
             <div class="menu-item" @click="triggerSearch(); moreMenuVisible = false">{{ t('terminal.searchText') }}</div>
           </div>
@@ -121,6 +122,10 @@ function toggleMoreMenu() {
 
 function connectSftp() {
   window.dispatchEvent(new CustomEvent('app:connect-sftp', { detail: props.panel }))
+}
+
+function uploadFileRz() {
+  window.dispatchEvent(new CustomEvent('terminal:send-rz', { detail: { panelId: props.panel.id } }))
 }
 
 function connectMonitor() {

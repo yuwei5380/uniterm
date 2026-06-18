@@ -72,6 +72,7 @@
   "terminal.duplicate": "Duplicate Session",
   "terminal.more": "More",
   "terminal.searchText": "Text Search",
+  "terminal.uploadFileRz": "Upload File (rz -be)",
   "terminal.askAI": "Ask AI",
   "terminal.copy": "Copy",
   "terminal.copyAndPaste": "Copy & Paste",

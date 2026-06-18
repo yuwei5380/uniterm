@@ -71,6 +71,7 @@
   "terminal.duplicate": "複製工作階段",
   "terminal.more": "更多",
   "terminal.searchText": "文字搜尋",
+  "terminal.uploadFileRz": "上傳檔案(rz -be)",
   "terminal.askAI": "問AI",
   "terminal.copy": "複製",
   "terminal.copyAndPaste": "複製並貼上",

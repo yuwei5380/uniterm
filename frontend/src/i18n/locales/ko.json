@@ -71,6 +71,7 @@
   "terminal.duplicate": "세션 복제",
   "terminal.more": "더 보기",
   "terminal.searchText": "텍스트 검색",
+  "terminal.uploadFileRz": "파일 업로드(rz -be)",
   "terminal.askAI": "AI에게 묻기",
   "terminal.copy": "복사",
   "terminal.copyAndPaste": "복사 및 붙여넣기",

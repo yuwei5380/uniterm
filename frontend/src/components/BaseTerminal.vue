@@ -152,6 +152,7 @@ let unsubscribe: (() => void) | null = null
 let statusUnsubscribe: (() => void) | null = null
 let onDocumentMouseDown: ((e: MouseEvent) => void) | null = null
 let onOpenSearch: ((e: Event) => void) | null = null
+let onSendRz: ((e: Event) => void) | null = null
 
 let resizeTimer: ReturnType<typeof setTimeout> | null = null
 let isResizing = false
@@ -910,6 +911,15 @@ onMounted(() => {
   }
   window.addEventListener('terminal:open-search', onOpenSearch)
 
+  onSendRz = (e: Event) => {
+    const detail = (e as CustomEvent).detail
+    if (detail?.panelId && detail.panelId !== props.panelId) return
+    if (props.sessionId) {
+      SessionWrite(props.sessionId, 'rz -be\n')
+    }
+  }
+  window.addEventListener('terminal:send-rz', onSendRz)
+
   // Ctrl+F to open search
   keyHandlerDispose = terminal.attachCustomKeyEventHandler((e) => {
     if (e.ctrlKey && e.key === 'f' && e.type === 'keydown') {
@@ -1198,6 +1208,7 @@ onUnmounted(() => {
   window.removeEventListener('split:resize-start', onSplitResizeStart)
   window.removeEventListener('split:resize-end', onSplitResizeEnd)
   if (onOpenSearch) window.removeEventListener('terminal:open-search', onOpenSearch)
+  if (onSendRz) window.removeEventListener('terminal:send-rz', onSendRz)
   suggestions.close()
   if (!zmodemStore.getActiveTransfer(props.sessionId || '')) {
     disposeZmodemService(props.sessionId || '')

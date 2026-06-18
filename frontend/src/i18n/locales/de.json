@@ -71,6 +71,7 @@
   "terminal.duplicate": "Sitzung duplizieren",
   "terminal.more": "Mehr",
   "terminal.searchText": "Textsuche",
+  "terminal.uploadFileRz": "Datei hochladen (rz -be)",
   "terminal.askAI": "KI fragen",
   "terminal.copy": "Kopieren",
   "terminal.copyAndPaste": "Kopieren & Einfügen",

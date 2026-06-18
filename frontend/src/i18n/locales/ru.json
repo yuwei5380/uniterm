@@ -71,6 +71,7 @@
   "terminal.duplicate": "Дублировать сессию",
   "terminal.more": "Ещё",
   "terminal.searchText": "Поиск текста",
+  "terminal.uploadFileRz": "Загрузить файл (rz -be)",
   "terminal.askAI": "Спросить ИИ",
   "terminal.copy": "Копировать",
   "terminal.copyAndPaste": "Копировать и вставить",

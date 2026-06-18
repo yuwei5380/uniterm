@@ -72,6 +72,7 @@
   "terminal.duplicate": "复制会话",
   "terminal.more": "更多",
   "terminal.searchText": "文本搜索",
+  "terminal.uploadFileRz": "上传文件(rz -be)",
   "terminal.askAI": "问AI",
   "terminal.copy": "复制",
   "terminal.copyAndPaste": "复制并粘贴",
