@@ -71,6 +71,8 @@ export function GetProcessDetail(arg1:string,arg2:number):Promise<Record<string,
 
 export function GetQueryHistory(arg1:string):Promise<Array<database.HistoryEntry>>;
 
+export function GetSystemFonts():Promise<Array<string>>;
+
 export function GetTableSchema(arg1:string,arg2:string,arg3:string):Promise<database.SchemaResult>;
 
 export function GetTables(arg1:string,arg2:string):Promise<Array<database.TableInfo>>;

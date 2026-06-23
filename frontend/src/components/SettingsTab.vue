@@ -82,12 +82,13 @@
               <div class="setting-desc">{{ t('settings.fontDesc') }}</div>
             </div>
             <div class="setting-control">
-              <el-select v-model="settingsStore.settings.terminal.fontFamily" size="small" @change="settingsStore.save()">
+              <el-select v-model="settingsStore.settings.terminal.fontFamily" size="small" filterable @change="settingsStore.save()">
                 <el-option
-                  v-for="f in FONT_OPTIONS"
+                  v-for="f in fontOptions"
                   :key="f.value"
                   :label="f.label"
                   :value="f.value"
+                  :style="{ fontFamily: f.value }"
                 />
               </el-select>
             </div>
@@ -454,10 +455,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, computed } from 'vue'
+import { ref, reactive, watch, computed, onMounted } from 'vue'
 import { Settings, Monitor, MessageCircleMore, Info, RefreshCw, Pencil, Trash2, Globe, Keyboard } from '@lucide/vue'
 import { msg } from '../services/message'
-import { FetchModels, ChatCompletion } from '../../wailsjs/go/main/App'
+import { FetchModels, ChatCompletion, GetSystemFonts } from '../../wailsjs/go/main/App'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useSyncStore } from '../stores/syncStore'
 import { useUpdateCheck } from '../composables/useUpdateCheck'
@@ -505,6 +506,26 @@ async function handleCheckUpdate() {
 }
 
 syncStore.loadConfig()
+
+// ── System fonts ──
+const systemFonts = ref<{ label: string; value: string }[]>([])
+const fontOptions = computed(() => {
+  if (systemFonts.value.length > 0) {
+    return systemFonts.value
+  }
+  return FONT_OPTIONS
+})
+
+onMounted(async () => {
+  try {
+    const fonts = await GetSystemFonts()
+    if (fonts && fonts.length > 0) {
+      systemFonts.value = fonts.map(f => ({ label: f, value: f }))
+    }
+  } catch {
+    // Fall back to FONT_OPTIONS
+  }
+})
 
 watch(() => settingsStore.openCategory, (cat) => {
   if (cat && (cat === 'basic' || cat === 'terminal' || cat === 'ai' || cat === 'sync' || cat === 'about' || cat === 'keyboard')) {

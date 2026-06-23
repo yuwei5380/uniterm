@@ -24,6 +24,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"github.com/ys-ll/uniterm/backend/database"
 	"github.com/ys-ll/uniterm/backend/log"
+	"github.com/ys-ll/uniterm/backend/platform"
 	"github.com/ys-ll/uniterm/backend/session"
 	"github.com/ys-ll/uniterm/backend/store"
 	"github.com/ys-ll/uniterm/backend/sync"
@@ -449,6 +450,10 @@ func (a *App) GetDesktopPath() (string, error) {
 
 func (a *App) GetPlatform() string {
 	return goruntime.GOOS
+}
+
+func (a *App) GetSystemFonts() ([]string, error) {
+	return platform.GetFontFamilies()
 }
 
 func (a *App) OnConnectionsChanged(callback func(session.ConnectionStoreData)) {
