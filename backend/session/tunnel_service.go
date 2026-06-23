@@ -43,7 +43,7 @@ func (ts *TunnelService) Start(sessionID string, sshConfig ConnectionConfig, tar
 	}
 
 	// 1. Establish SSH connection
-	authMethods := makeSSHAuthMethods(sshConfig)
+	authMethods := makeSSHAuthMethods(sshConfig, nil)
 	addr := fmt.Sprintf("%s:%d", sshConfig.Host, sshConfig.Port)
 	clientConfig := &ssh.ClientConfig{
 		User:            sshConfig.User,

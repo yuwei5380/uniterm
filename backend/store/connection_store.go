@@ -57,7 +57,14 @@ func (s *ConnectionStore) Save(data session.ConnectionStoreData) error {
 	// Extract passwords to external store before writing JSON
 	for i := range connections {
 		conn := &connections[i]
-		if conn.AuthType != "password" || conn.Password == "" {
+		if conn.AuthType != "password" {
+			continue
+		}
+		if conn.Password == "" {
+			// Password was cleared - remove old entry from keychain.
+			if s.passwordStore != nil {
+				_ = s.passwordStore.DeletePassword(conn.ID)
+			}
 			continue
 		}
 		if s.passwordStore != nil {

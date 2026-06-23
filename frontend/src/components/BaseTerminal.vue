@@ -925,6 +925,8 @@ onMounted(() => {
           props.onSessionStatus(payload.status)
         }
       } else {
+        // Focus terminal on connecting so user can type password immediately.
+        focus()
         if (props.onSessionStatus) {
           props.onSessionStatus(payload.status)
         }

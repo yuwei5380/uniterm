@@ -38,7 +38,7 @@ func (s *MoshSession) Connect(config ConnectionConfig) error {
 	s.title = fmt.Sprintf("%s@%s (mosh)", config.User, config.Host)
 
 	// Step 1: SSH to remote and start mosh-server to get key + UDP port.
-	authMethods := makeSSHAuthMethods(config)
+	authMethods := makeSSHAuthMethods(config, nil)
 	addr := fmt.Sprintf("%s:%d", config.Host, config.Port)
 	clientConfig := &ssh.ClientConfig{
 		User:            config.User,

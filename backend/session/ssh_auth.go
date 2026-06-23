@@ -6,7 +6,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func makeSSHAuthMethods(config ConnectionConfig) []ssh.AuthMethod {
+func makeSSHAuthMethods(config ConnectionConfig, kbCallback ssh.KeyboardInteractiveChallenge) []ssh.AuthMethod {
 	var methods []ssh.AuthMethod
 
 	switch config.AuthType {
@@ -28,6 +28,12 @@ func makeSSHAuthMethods(config ConnectionConfig) []ssh.AuthMethod {
 		methods = append(methods, ssh.Password(config.Password))
 	default:
 		methods = append(methods, ssh.Password(config.Password))
+	}
+
+
+	// Keyboard-interactive as fallback for password-less or failed-password scenarios.
+	if kbCallback != nil {
+		methods = append(methods, ssh.KeyboardInteractive(kbCallback))
 	}
 
 	return methods

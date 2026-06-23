@@ -28,6 +28,7 @@ type SSHSession struct {
 	quit         chan struct{}
 	quitOnce     sync.Once
 	lastReadTime atomic.Int64
+	authAnswerCh chan []byte
 }
 
 func NewSSHSession(id string) *SSHSession {
@@ -45,8 +46,97 @@ func (s *SSHSession) Connect(config ConnectionConfig) error {
 	s.setStatus(StatusConnecting)
 	s.title = fmt.Sprintf("%s@%s", config.User, config.Host)
 
-	authMethods := makeSSHAuthMethods(config)
+	// Set up keyboard-interactive auth input channel.
+	s.mu.Lock()
+	s.authAnswerCh = make(chan []byte, 256)
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		s.authAnswerCh = nil
+		s.mu.Unlock()
+	}()
 
+	// If no password is stored, prompt the user in the terminal before the
+	// SSH handshake. This covers servers that do not advertise
+	// keyboard-interactive support (the kbCallback fallback below).
+	if config.Password == "" {
+		s.emitData([]byte("\r\nPassword: "))
+		var answer string
+	promptLoop:
+		for {
+			select {
+			case data := <-s.authAnswerCh:
+				for _, b := range data {
+					switch b {
+					case '\r', '\n':
+						break promptLoop
+					case '\x03': // Ctrl+C
+						s.emitData([]byte("^C\r\n"))
+						return fmt.Errorf("auth cancelled")
+					case 127, '\b': // Backspace
+						if len(answer) > 0 {
+							answer = answer[:len(answer)-1]
+						}
+					case '\x15': // Ctrl+U
+						answer = ""
+					default:
+						answer += string(b)
+					}
+				}
+			case <-time.After(120 * time.Second):
+				s.emitData([]byte("\r\nAuth timeout\r\n"))
+				return fmt.Errorf("auth timeout")
+			}
+		}
+		s.emitData([]byte("\r\n"))
+		config.Password = answer
+	}
+
+
+	kbCallback := func(user, instruction string, questions []string, echos []bool) ([]string, error) {
+		answers := make([]string, len(questions))
+		for i, q := range questions {
+			s.emitData([]byte("\r\n" + q + " "))
+			var answer string
+		loop:
+			for {
+				select {
+				case data := <-s.authAnswerCh:
+					for _, b := range data {
+						switch b {
+						case '\r', '\n':
+							break loop
+						case '\x03':
+							s.emitData([]byte("^C\r\n"))
+							return nil, fmt.Errorf("auth cancelled")
+						case 127, '\b':
+							if len(answer) > 0 {
+								answer = answer[:len(answer)-1]
+								if echos[i] {
+									s.emitData([]byte("\b \b"))
+								}
+							}
+						case '\x15': // Ctrl+U
+							answer = ""
+						default:
+							answer += string(b)
+							if echos[i] {
+								s.emitData([]byte{b})
+							}
+						}
+					}
+				case <-time.After(120 * time.Second):
+					s.emitData([]byte("\r\nAuth timeout\r\n"))
+					return nil, fmt.Errorf("auth timeout")
+				}
+			}
+			s.emitData([]byte("\r\n"))
+			answers[i] = answer
+		}
+		return answers, nil
+	}
+
+	authMethods := makeSSHAuthMethods(config, kbCallback)
 	addr := fmt.Sprintf("%s:%d", config.Host, config.Port)
 	clientConfig := &ssh.ClientConfig{
 		User:            config.User,
@@ -283,6 +373,14 @@ func (s *SSHSession) startKeepAlive() {
 }
 
 func (s *SSHSession) Write(data []byte) error {
+	// During keyboard-interactive auth, route input to the auth callback.
+	s.mu.RLock()
+	ch := s.authAnswerCh
+	s.mu.RUnlock()
+	if ch != nil {
+		ch <- data
+		return nil
+	}
 	if s.stdin == nil {
 		return fmt.Errorf("not connected")
 	}
