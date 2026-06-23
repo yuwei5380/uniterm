@@ -130,6 +130,10 @@ export function GetQueryHistory(arg1) {
   return window['go']['main']['App']['GetQueryHistory'](arg1);
 }
 
+export function GetSystemFonts() {
+  return window['go']['main']['App']['GetSystemFonts']();
+}
+
 export function GetTableSchema(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetTableSchema'](arg1, arg2, arg3);
 }
