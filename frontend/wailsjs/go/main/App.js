@@ -294,8 +294,16 @@ export function SftpChmod(arg1, arg2, arg3) {
   return window['go']['main']['App']['SftpChmod'](arg1, arg2, arg3);
 }
 
+export function SftpCopy(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SftpCopy'](arg1, arg2, arg3);
+}
+
 export function SftpGet(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['SftpGet'](arg1, arg2, arg3, arg4);
+}
+
+export function SftpGetContent(arg1, arg2) {
+  return window['go']['main']['App']['SftpGetContent'](arg1, arg2);
 }
 
 export function SftpListLocal(arg1, arg2) {
@@ -310,8 +318,24 @@ export function SftpListRemote(arg1, arg2) {
   return window['go']['main']['App']['SftpListRemote'](arg1, arg2);
 }
 
+export function SftpLocalCopy(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SftpLocalCopy'](arg1, arg2, arg3);
+}
+
+export function SftpLocalGetContent(arg1, arg2) {
+  return window['go']['main']['App']['SftpLocalGetContent'](arg1, arg2);
+}
+
 export function SftpLocalMkdir(arg1, arg2) {
   return window['go']['main']['App']['SftpLocalMkdir'](arg1, arg2);
+}
+
+export function SftpLocalMove(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SftpLocalMove'](arg1, arg2, arg3);
+}
+
+export function SftpLocalPutContent(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SftpLocalPutContent'](arg1, arg2, arg3);
 }
 
 export function SftpLocalRemove(arg1, arg2, arg3) {
@@ -324,6 +348,10 @@ export function SftpLocalRename(arg1, arg2, arg3) {
 
 export function SftpMakeDir(arg1, arg2) {
   return window['go']['main']['App']['SftpMakeDir'](arg1, arg2);
+}
+
+export function SftpMove(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SftpMove'](arg1, arg2, arg3);
 }
 
 export function SftpPauseTransfer(arg1, arg2) {

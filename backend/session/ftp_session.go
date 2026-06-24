@@ -527,6 +527,53 @@ func (s *FTPSession) LocalMkdir(dir string) error {
 	return os.MkdirAll(p, 0755)
 }
 
+// LocalGetContent reads a local file's full content.
+func (s *FTPSession) LocalGetContent(localPath string) ([]byte, error) {
+	p := localPath
+	if !filepath.IsAbs(p) {
+		p = filepath.Join(s.localCwd, p)
+	}
+	return os.ReadFile(p)
+}
+
+// LocalPutContent writes content to a local file, creating parent directories as needed.
+func (s *FTPSession) LocalPutContent(localPath string, content []byte) error {
+	p := localPath
+	if !filepath.IsAbs(p) {
+		p = filepath.Join(s.localCwd, p)
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(p, content, 0644)
+}
+
+// LocalCopy copies a local file or directory.
+func (s *FTPSession) LocalCopy(oldPath, newPath string) error {
+	old := oldPath
+	if !filepath.IsAbs(old) {
+		old = filepath.Join(s.localCwd, old)
+	}
+	n := newPath
+	if !filepath.IsAbs(n) {
+		n = filepath.Join(s.localCwd, n)
+	}
+	return localCopyRecursive(old, n)
+}
+
+// LocalMove moves a local file or directory (rename, same filesystem only).
+func (s *FTPSession) LocalMove(oldPath, newPath string) error {
+	old := oldPath
+	if !filepath.IsAbs(old) {
+		old = filepath.Join(s.localCwd, old)
+	}
+	n := newPath
+	if !filepath.IsAbs(n) {
+		n = filepath.Join(s.localCwd, n)
+	}
+	return os.Rename(old, n)
+}
+
 // PutContent writes raw content directly to a remote file via FTP.
 func (s *FTPSession) PutContent(remotePath string, content []byte) error {
 	if err := s.requireClient(); err != nil {
@@ -543,6 +590,68 @@ func (s *FTPSession) PutContent(remotePath string, content []byte) error {
 	}
 	reader := strings.NewReader(string(content))
 	return s.conn.Stor(rp, reader)
+}
+
+// GetContent reads the full content of a remote file via FTP.
+func (s *FTPSession) GetContent(remotePath string) ([]byte, error) {
+	if err := s.requireClient(); err != nil {
+		return nil, err
+	}
+	s.connMu.Lock()
+	defer s.connMu.Unlock()
+	rp := remotePath
+	if !path.IsAbs(rp) {
+		rp = path.Join(s.cwd, rp)
+	}
+	r, err := s.conn.Retr(rp)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return io.ReadAll(r)
+}
+
+// Copy copies a remote file via FTP (download + re-upload — FTP has no server-side copy).
+func (s *FTPSession) Copy(oldPath, newPath string) error {
+	if err := s.requireClient(); err != nil {
+		return err
+	}
+	s.connMu.Lock()
+	defer s.connMu.Unlock()
+	old := oldPath
+	if !path.IsAbs(old) {
+		old = path.Join(s.cwd, old)
+	}
+	n := newPath
+	if !path.IsAbs(n) {
+		n = path.Join(s.cwd, n)
+	}
+	// FTP cannot copy directories via Retr, check first
+	if _, listErr := s.conn.List(old); listErr == nil {
+		return fmt.Errorf("cannot copy directory via FTP: %s", old)
+	}
+	// Download
+	r, err := s.conn.Retr(old)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	// Create parent directories for destination
+	parentDir := path.Dir(n)
+	if err := s.mkdirAllRemote(parentDir); err != nil {
+		return err
+	}
+	// Upload
+	return s.conn.Stor(n, strings.NewReader(string(data)))
+}
+
+// Move moves a remote file via FTP Rename (server-side, no data transfer).
+func (s *FTPSession) Move(oldPath, newPath string) error {
+	return s.Rename(oldPath, newPath)
 }
 
 // mkdirAllRemote creates intermediate directories as needed.

@@ -1555,9 +1555,16 @@ type fileTransferSession interface {
 	LocalRemove(path string, recursive bool) error
 	LocalRename(oldPath, newPath string) error
 	LocalMkdir(dir string) error
+	LocalGetContent(path string) ([]byte, error)
+	LocalPutContent(path string, content []byte) error
+	LocalCopy(oldPath, newPath string) error
+	LocalMove(oldPath, newPath string) error
 	Get(remotePath, localPath string, recursive bool) (string, error)
 	Put(localPath, remotePath string, recursive bool) (string, error)
 	PutContent(remotePath string, content []byte) error
+	GetContent(remotePath string) ([]byte, error)
+	Copy(oldPath, newPath string) error
+	Move(oldPath, newPath string) error
 	CancelTransfer(taskID string) error
 	PauseTransfer(taskID string) error
 	ResumeTransfer(taskID string) error
@@ -1677,6 +1684,46 @@ func (a *App) SftpLocalMkdir(sessionID, dir string) error {
 	return fs.LocalMkdir(dir)
 }
 
+func (a *App) SftpLocalGetContent(sessionID, localPath string) (string, error) {
+	fs, err := a.getSftp(sessionID)
+	if err != nil {
+		return "", err
+	}
+	content, err := fs.LocalGetContent(localPath)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(content), nil
+}
+
+func (a *App) SftpLocalPutContent(sessionID, localPath, contentBase64 string) error {
+	fs, err := a.getSftp(sessionID)
+	if err != nil {
+		return err
+	}
+	content, err := base64.StdEncoding.DecodeString(contentBase64)
+	if err != nil {
+		return err
+	}
+	return fs.LocalPutContent(localPath, content)
+}
+
+func (a *App) SftpLocalCopy(sessionID, oldPath, newPath string) error {
+	fs, err := a.getSftp(sessionID)
+	if err != nil {
+		return err
+	}
+	return fs.LocalCopy(oldPath, newPath)
+}
+
+func (a *App) SftpLocalMove(sessionID, oldPath, newPath string) error {
+	fs, err := a.getSftp(sessionID)
+	if err != nil {
+		return err
+	}
+	return fs.LocalMove(oldPath, newPath)
+}
+
 func (a *App) SftpGet(sessionID, remotePath, localPath string, recursive bool) (string, error) {
 	fs, err := a.getSftp(sessionID)
 	if err != nil {
@@ -1727,6 +1774,34 @@ func (a *App) SftpPutContent(sessionID, remotePath, contentBase64 string) error 
 		return err
 	}
 	return fs.PutContent(remotePath, content)
+}
+
+func (a *App) SftpGetContent(sessionID, remotePath string) (string, error) {
+	fs, err := a.getSftp(sessionID)
+	if err != nil {
+		return "", err
+	}
+	content, err := fs.GetContent(remotePath)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(content), nil
+}
+
+func (a *App) SftpCopy(sessionID, oldPath, newPath string) error {
+	fs, err := a.getSftp(sessionID)
+	if err != nil {
+		return err
+	}
+	return fs.Copy(oldPath, newPath)
+}
+
+func (a *App) SftpMove(sessionID, oldPath, newPath string) error {
+	fs, err := a.getSftp(sessionID)
+	if err != nil {
+		return err
+	}
+	return fs.Move(oldPath, newPath)
 }
 
 // WriteTempFile writes base64-encoded content to a temp file and returns its path.
