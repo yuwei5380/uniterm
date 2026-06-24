@@ -16,12 +16,23 @@
           mode="local"
           :files="localFiles"
           :loading="loadingLocal"
+          :paste-loading="pasteLoading"
+          :cut-item-names="localCutItemNames"
+          :clipboard-count="localClipboardCount"
+          :clipboard-mode="localClipboard?.mode"
           @navigate="onLocalNavigate"
           @send-to-other="onSendToRemote"
           @rename="(item: FileItem) => { dialogMode = 'local'; onRename(item) }"
           @delete="(items: FileItem[]) => { dialogMode = 'local'; onDelete(items) }"
           @refresh="onRefreshLocal"
           @mkdir="() => { dialogMode = 'local'; onMkdir() }"
+          @edit="onLocalEditFile"
+          @new-file="onLocalNewFile"
+          @copy-to-clipboard="onLocalCopyToClipboard"
+          @cut-to-clipboard="onLocalCutToClipboard"
+          @paste="onLocalPaste"
+          @clear-clipboard="onLocalClearClipboard"
+          @open="onLocalEditFile"
           @cancel-load="onCancelLoadLocal"
         />
       </div>
@@ -40,6 +51,10 @@
           mode="remote"
           :files="remoteFiles"
           :loading="loadingRemote"
+          :paste-loading="pasteLoading"
+          :cut-item-names="cutItemNames"
+          :clipboard-count="clipboardCount"
+          :clipboard-mode="clipboard?.mode"
           @navigate="onRemoteNavigate"
           @send-to-other="onSendToLocal"
           @rename="(item: FileItem) => { dialogMode = 'remote'; onRename(item) }"
@@ -49,6 +64,14 @@
           @chmod="(item: FileItem) => { dialogMode = 'remote'; onChmod(item) }"
           @upload="onUpload"
           @download-to="onDownloadTo"
+          @edit="onEditFile"
+          @new-file="onNewFile"
+          @copy-to-clipboard="onCopyToClipboard"
+          @cut-to-clipboard="onCutToClipboard"
+          @paste="onPaste"
+          @clear-clipboard="onClearClipboard"
+          @cancel-paste="onCancelPaste"
+          @open="onEditFile"
           @cancel-load="onCancelLoadRemote"
         />
       </div>
@@ -110,11 +133,97 @@
         <el-button type="primary" @click="onDialogConfirm">{{ t('sftp.dialog.confirm') }}</el-button>
       </template>
     </el-dialog>
+
+    <!-- Editor Dialog -->
+    <el-dialog
+      v-model="editorVisible"
+      :title="editorTitle"
+      width="80%"
+      :close-on-click-modal="false"
+      destroy-on-close
+    >
+      <div class="editor-container">
+        <div ref="editorLineNumbers" class="editor-line-numbers">{{ editorLineNumbersText }}</div>
+        <textarea
+          ref="editorTextarea"
+          v-model="editorContent"
+          class="editor-textarea"
+          :class="{ 'editor-textarea-wrap': editorWrapEnabled }"
+          spellcheck="false"
+          :wrap="editorWrapEnabled ? 'soft' : 'off'"
+          @scroll="onEditorScroll"
+          @input="onEditorInput"
+        ></textarea>
+      </div>
+      <div ref="editorMirror" class="editor-mirror" aria-hidden="true"></div>
+      <template #footer>
+        <div class="editor-footer">
+          <div class="editor-footer-left">
+            <el-checkbox v-model="editorWrapEnabled" size="small">{{ t('sftp.edit.wrap') }}</el-checkbox>
+            <el-select v-model="editorEncoding" size="small" style="width: 100px">
+              <el-option label="UTF-8" value="utf-8" />
+              <el-option label="UTF-16 LE" value="utf-16le" />
+              <el-option label="UTF-16 BE" value="utf-16be" />
+              <el-option label="GBK" value="gbk" />
+            </el-select>
+            <el-select v-model="editorLineEnding" size="small" style="width: 140px">
+              <el-option label="LF (Linux/macOS)" value="lf" />
+              <el-option label="CRLF (Windows)" value="crlf" />
+              <el-option label="CR (old Mac)" value="cr" />
+            </el-select>
+          </div>
+          <div class="editor-footer-buttons">
+            <el-button @click="editorVisible = false">{{ t('sftp.dialog.cancel') }}</el-button>
+            <el-button type="primary" :loading="editorSaving" @click="onEditorSave">{{ t('sftp.dialog.confirm') }}</el-button>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- Conflict Dialog -->
+    <el-dialog
+      v-model="conflictVisible"
+      :title="t('sftp.dialog.conflictTitle')"
+      width="450px"
+      :close-on-click-modal="false"
+    >
+      <p>{{ t('sftp.dialog.conflictPrompt') }}</p>
+      <ul class="conflict-list">
+        <li v-for="f in conflictFiles" :key="f">{{ f }}</li>
+      </ul>
+      <template #footer>
+        <el-button @click="onConflictResolve('cancel')">{{ t('sftp.dialog.cancel') }}</el-button>
+        <el-button @click="onConflictResolve('overwrite')">{{ t('sftp.dialog.conflictOverwrite') }}</el-button>
+        <el-button type="primary" @click="onConflictResolve('rename')">{{ t('sftp.dialog.conflictRename') }}</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- New File Dialog -->
+    <el-dialog
+      v-model="newFileVisible"
+      :title="t('sftp.dialog.newFileTitle')"
+      width="400px"
+      :close-on-click-modal="false"
+      destroy-on-close
+      @closed="newFileError = ''"
+    >
+      <el-input
+        v-model="newFileName"
+        :placeholder="t('sftp.dialog.newFilePrompt')"
+        @keyup.enter="onNewFileCreate"
+      />
+      <p v-if="newFileError" style="color: var(--el-color-danger); margin-top: 8px;">{{ newFileError }}</p>
+      <template #footer>
+        <el-button @click="newFileVisible = false">{{ t('sftp.dialog.cancel') }}</el-button>
+        <el-button type="primary" :loading="newFileCreating" @click="onNewFileCreate">{{ t('sftp.dialog.confirm') }}</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
 import { msg } from '../services/message'
 import { usePanelStore } from '../stores/panelStore'
 import { useI18n } from '../i18n'
@@ -123,7 +232,9 @@ import {
   SftpChangeRemoteDir, SftpChangeLocalDir,
   SftpMakeDir, SftpRemove, SftpRename, SftpChmod,
   SftpLocalRemove, SftpLocalRename, SftpLocalMkdir,
-  SftpGet, SftpPut, WriteTempFile, SftpCancelTransfer, SftpPauseTransfer, SftpResumeTransfer, ListSessions, GetDesktopPath,
+  SftpLocalGetContent, SftpLocalPutContent, SftpLocalCopy, SftpLocalMove,
+  SftpGet, SftpPut, SftpPutContent, SftpGetContent, SftpCopy, SftpMove,
+  WriteTempFile, SftpCancelTransfer, SftpPauseTransfer, SftpResumeTransfer, ListSessions, GetDesktopPath,
   OpenMultipleFilesDialog, OpenDirectoryDialog,
 } from '../../wailsjs/go/main/App'
 import { EventsOn } from '../../wailsjs/runtime'
@@ -151,6 +262,7 @@ const loadingLocal = ref(false)
 const loadingRemote = ref(false)
 let loadVersionLocal = 0
 let loadVersionRemote = 0
+const pasteLoading = ref(false)
 const dragOverLocal = ref(false)
 const dragOverRemote = ref(false)
 const dragSource = ref<'local' | 'remote' | null>(null)
@@ -165,6 +277,83 @@ function joinPath(base: string, name: string): string {
   return base + '/' + name
 }
 
+function fromBase64(b64: string): Uint8Array {
+  const binary = atob(b64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes
+}
+
+type Encoding = 'utf-8' | 'utf-16le' | 'utf-16be' | 'gbk'
+type LineEnding = 'lf' | 'crlf' | 'cr'
+
+function detectEncoding(bytes: Uint8Array): { encoding: Encoding, hasBom: boolean } {
+  if (bytes.length >= 2) {
+    if (bytes[0] === 0xFF && bytes[1] === 0xFE) return { encoding: 'utf-16le', hasBom: true }
+    if (bytes[0] === 0xFE && bytes[1] === 0xFF) return { encoding: 'utf-16be', hasBom: true }
+  }
+  if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    return { encoding: 'utf-8', hasBom: true }
+  }
+  let nullCount = 0
+  const checkLen = Math.min(bytes.length, 1024)
+  for (let i = 0; i < checkLen; i++) { if (bytes[i] === 0) nullCount++ }
+  if (nullCount > checkLen * 0.3) return { encoding: 'utf-16le', hasBom: false }
+  try {
+    new TextDecoder('utf-8', { fatal: true }).decode(bytes.slice(0, 4096))
+    return { encoding: 'utf-8', hasBom: false }
+  } catch { return { encoding: 'gbk', hasBom: false } }
+}
+
+function detectLineEnding(text: string): LineEnding {
+  let crlf = 0, lf = 0, cr = 0
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '\r' && text[i + 1] === '\n') { crlf++; i++ }
+    else if (text[i] === '\n') lf++
+    else if (text[i] === '\r') cr++
+  }
+  if (crlf > lf && crlf > cr) return 'crlf'
+  if (cr > lf && cr > crlf) return 'cr'
+  return 'lf'
+}
+
+function decodeContent(bytes: Uint8Array, enc: Encoding): string {
+  if (enc === 'gbk') {
+    try { return new TextDecoder('gbk').decode(bytes) }
+    catch { return new TextDecoder('gb18030').decode(bytes) }
+  }
+  return new TextDecoder(enc === 'utf-16le' ? 'utf-16le' : enc === 'utf-16be' ? 'utf-16be' : 'utf-8').decode(bytes)
+}
+
+function encodeContent(text: string, enc: Encoding, lineEnding: LineEnding): string {
+  let normalized = text
+  if (lineEnding === 'crlf') normalized = text.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n')
+  else if (lineEnding === 'cr') normalized = text.replace(/\r\n/g, '\n').replace(/\n/g, '\r')
+  else normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  if (enc === 'gbk' || enc === 'utf-8') return toBase64(normalized)
+  const buf = new Uint8Array(normalized.length * 2 + 2)
+  let pos = 0
+  buf[pos++] = enc === 'utf-16le' ? 0xFF : 0xFE
+  buf[pos++] = enc === 'utf-16le' ? 0xFE : 0xFF
+  for (let i = 0; i < normalized.length; i++) {
+    const code = normalized.charCodeAt(i)
+    buf[pos++] = enc === 'utf-16le' ? (code & 0xFF) : ((code >> 8) & 0xFF)
+    buf[pos++] = enc === 'utf-16le' ? ((code >> 8) & 0xFF) : (code & 0xFF)
+  }
+  let binary = ''
+  for (let i = 0; i < pos; i++) binary += String.fromCharCode(buf[i])
+  return btoa(binary)
+}
+
+function toBase64(str: string): string {
+  const bytes = new TextEncoder().encode(str)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
+}
+
 // Dialog state
 const dialogVisible = ref(false)
 const dialogType = ref<'rename' | 'mkdir' | 'chmod' | 'delete'>('rename')
@@ -174,6 +363,133 @@ const dialogInput = ref('')
 const dialogPlaceholder = ref('')
 const dialogItem = ref<FileItem | null>(null)
 const dialogItems = ref<FileItem[]>([])
+
+// Clipboard state
+interface Clipboard {
+  items: string[]
+  sourceDir: string
+  mode: 'copy' | 'cut'
+}
+const clipboard = ref<Clipboard | null>(null)
+const localClipboard = ref<Clipboard | null>(null)
+const cutItemNames = computed(() =>
+  clipboard.value?.mode === 'cut' ? clipboard.value.items : []
+)
+const localCutItemNames = computed(() =>
+  localClipboard.value?.mode === 'cut' ? localClipboard.value.items : []
+)
+const clipboardCount = computed(() => clipboard.value?.items.length ?? 0)
+const localClipboardCount = computed(() => localClipboard.value?.items.length ?? 0)
+
+// Editor dialog state
+const editorVisible = ref(false)
+const editorTitle = ref('')
+const editorPath = ref('')
+const editorMode = ref<'local' | 'remote'>('remote')
+const editorContent = ref('')
+const editorSaving = ref(false)
+const editorLineNumbers = ref<HTMLElement | null>(null)
+const editorTextarea = ref<HTMLTextAreaElement | null>(null)
+const editorMirror = ref<HTMLDivElement | null>(null)
+const editorWrapEnabled = ref(true)
+const editorEncoding = ref<Encoding>('utf-8')
+const editorLineEnding = ref<LineEnding>('lf')
+const editorVisualLines = ref<number[]>([])
+const LINE_HEIGHT = 24
+
+const editorLineCount = computed(() => {
+  if (!editorContent.value) return 1
+  return (editorContent.value.match(/\n/g) || []).length + 1
+})
+
+const editorLineNumbersText = computed(() => {
+  if (editorWrapEnabled.value && editorVisualLines.value.length > 0) {
+    let lastNum = -1
+    const lines = editorVisualLines.value.map(n => {
+      const isFirst = n !== lastNum
+      lastNum = n
+      return isFirst ? String(n) : ''
+    })
+    return lines.join('\n')
+  }
+  const lines: string[] = []
+  const count = editorLineCount.value
+  for (let i = 1; i <= count; i++) {
+    lines.push(String(i))
+  }
+  return lines.join('\n')
+})
+
+const editorMinHeight = computed(() => '')
+
+function computeVisualLines() {
+  if (!editorWrapEnabled.value || !editorMirror.value || !editorTextarea.value) return
+  const textareaWidth = editorTextarea.value.clientWidth
+  if (textareaWidth <= 0) return
+
+  const lines = editorContent.value.split('\n')
+  const result: number[] = []
+  const mirror = editorMirror.value
+  mirror.style.width = textareaWidth + 'px'
+  const cs = getComputedStyle(editorTextarea.value!)
+  mirror.style.fontFamily = cs.fontFamily
+  mirror.style.fontSize = cs.fontSize
+  mirror.style.lineHeight = cs.lineHeight
+
+  for (let i = 0; i < lines.length; i++) {
+    const testEl = document.createElement('div')
+    testEl.textContent = lines[i] || ' '
+    mirror.appendChild(testEl)
+    const h = testEl.offsetHeight
+    mirror.removeChild(testEl)
+    const visualLines = Math.max(1, Math.round(h / LINE_HEIGHT))
+    for (let j = 0; j < visualLines; j++) {
+      result.push(i + 1)
+    }
+  }
+  editorVisualLines.value = result
+}
+
+function onEditorInput() {
+  if (editorWrapEnabled.value) {
+    requestAnimationFrame(computeVisualLines)
+  }
+}
+
+function onEditorScroll() {
+  if (editorLineNumbers.value && editorTextarea.value) {
+    editorLineNumbers.value.scrollTop = editorTextarea.value.scrollTop
+  }
+}
+
+watch(editorWrapEnabled, (enabled) => {
+  if (enabled) {
+    nextTick(() => {
+      requestAnimationFrame(computeVisualLines)
+    })
+  } else {
+    editorVisualLines.value = []
+  }
+})
+
+watch(editorVisible, (visible) => {
+  if (!visible) {
+    editorWrapEnabled.value = true
+    editorVisualLines.value = []
+  }
+})
+
+// New File dialog state
+const newFileVisible = ref(false)
+const newFileName = ref('newfile.txt')
+const newFileMode = ref<'local' | 'remote'>('remote')
+const newFileError = ref('')
+const newFileCreating = ref(false)
+
+// Conflict dialog state
+const conflictVisible = ref(false)
+const conflictFiles = ref<string[]>([])
+const conflictResolve = ref<((action: 'overwrite' | 'rename' | 'cancel') => void) | null>(null)
 
 // Chmod checkbox state
 const chmodOwnerR = ref(false)
@@ -559,6 +875,376 @@ async function onDownloadTo(items: FileItem[]) {
   }
 }
 
+// --- Clipboard handlers ---
+
+function onCopyToClipboard(items: FileItem[]) {
+  clipboard.value = {
+    items: items.map(i => i.name),
+    sourceDir: cwd.value,
+    mode: 'copy'
+  }
+  ElMessage.success(t('sftp.copy'))
+}
+
+function onCutToClipboard(items: FileItem[]) {
+  clipboard.value = {
+    items: items.map(i => i.name),
+    sourceDir: cwd.value,
+    mode: 'cut'
+  }
+  ElMessage.success(t('sftp.cut'))
+}
+
+function onClearClipboard() {
+  clipboard.value = null
+}
+
+function onLocalCopyToClipboard(items: FileItem[]) {
+  localClipboard.value = {
+    items: items.map(i => i.name),
+    sourceDir: localCwd.value,
+    mode: 'copy'
+  }
+  ElMessage.success(t('sftp.copy'))
+}
+
+function onLocalCutToClipboard(items: FileItem[]) {
+  localClipboard.value = {
+    items: items.map(i => i.name),
+    sourceDir: localCwd.value,
+    mode: 'cut'
+  }
+  ElMessage.success(t('sftp.cut'))
+}
+
+function onLocalClearClipboard() {
+  localClipboard.value = null
+}
+
+function autoRename(targetName: string, existingNames: string[]): string {
+  if (!existingNames.includes(targetName)) return targetName
+  const dotIdx = targetName.lastIndexOf('.')
+  const base = dotIdx > 0 ? targetName.slice(0, dotIdx) : targetName
+  const ext = dotIdx > 0 ? targetName.slice(dotIdx) : ''
+  let n = 1
+  let candidate: string
+  do {
+    candidate = `${base} (${n})${ext}`
+    n++
+  } while (existingNames.includes(candidate))
+  return candidate
+}
+
+function isPathInside(child: string, parent: string): boolean {
+  const c = child.endsWith('/') ? child : child + '/'
+  const p = parent.endsWith('/') ? parent : parent + '/'
+  return c.startsWith(p)
+}
+
+function showConflictDialog(conflicts: string[]): Promise<'overwrite' | 'rename' | 'cancel'> {
+  return new Promise((resolve) => {
+    conflictFiles.value = conflicts
+    conflictResolve.value = resolve
+    conflictVisible.value = true
+  })
+}
+
+function onConflictResolve(action: 'overwrite' | 'rename' | 'cancel') {
+  conflictVisible.value = false
+  if (conflictResolve.value) {
+    conflictResolve.value(action)
+    conflictResolve.value = null
+  }
+}
+
+let pasteCancelled = false
+
+function onCancelPaste() {
+  pasteCancelled = true
+  pasteLoading.value = false
+}
+
+async function onPaste() {
+  const sid = panel.value?.sessionId
+  if (!sid || !clipboard.value) return
+  const { items, sourceDir, mode } = clipboard.value
+  pasteCancelled = false
+  pasteLoading.value = true
+  const targetDir = cwd.value
+
+  // Cut to same directory: error immediately, no conflict dialog
+  if (mode === 'cut' && sourceDir === targetDir) {
+    ElMessage.warning(t('sftp.paste.cutSameDir'))
+    return
+  }
+
+  const existingNames = remoteFiles.value.map(f => f.name)
+
+  // Check for name conflicts
+  const conflicts = items.filter(name => existingNames.includes(name))
+  let resolveAction: 'overwrite' | 'rename' | 'cancel' = 'rename'
+  if (conflicts.length > 0) {
+    resolveAction = await showConflictDialog(conflicts)
+    if (resolveAction === 'cancel') return
+  }
+
+  let success = 0
+  const failed: string[] = []
+
+  for (const name of items) {
+    if (pasteCancelled) break
+    const source = joinPath(sourceDir, name)
+    const target = joinPath(targetDir, name)
+    // Same path: copy mode force auto-rename below
+    if (source === target) {
+      // copy mode (cut already blocked at top level)
+    } else if (isPathInside(target, source)) {
+    // Circular check (only when source !== target)
+      ElMessage.warning(t('sftp.paste.circularWarning'))
+      continue
+    }
+    const forceRename = source === target && mode === 'copy'
+    let resolvedName = name
+    if (forceRename || (resolveAction === 'rename' && existingNames.includes(name))) {
+      resolvedName = autoRename(name, existingNames)
+    }
+    const resolvedTarget = joinPath(targetDir, resolvedName)
+    existingNames.push(resolvedName)
+    try {
+      if (mode === 'copy') {
+        await SftpCopy(sid, source, resolvedTarget)
+      } else {
+        await SftpMove(sid, source, resolvedTarget)
+      }
+      success++
+    } catch (e: any) {
+      failed.push(name + ': ' + (e?.toString() || 'unknown'))
+    }
+  }
+
+  pasteLoading.value = false
+
+  if (pasteCancelled) {
+    // keep clipboard so user can retry
+  } else if (failed.length > 0) {
+    ElMessage.error(`Copied/Moved ${success}/${items.length}, ${failed.length} failed`)
+  } else {
+    ElMessage.success(t('sftp.paste'))
+  }
+
+  if (!pasteCancelled) clipboard.value = null
+  onRefreshRemote()
+}
+
+// --- Editor handlers ---
+
+function isBinaryContent(bytes: Uint8Array): boolean {
+  const sample = bytes.slice(0, 8192)
+  if (!sample.length) return false
+  let nullCount = 0
+  let nonPrintable = 0
+  for (let i = 0; i < sample.length; i++) {
+    const c = sample[i]
+    if (c < 0x09 || (c > 0x0D && c < 0x20)) nonPrintable++
+  }
+  if (nonPrintable > sample.length * 0.3) return true
+  return false
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+async function onEditFile(item: FileItem) {
+  if (item.isDir) return
+  const sid = panel.value?.sessionId
+  if (!sid) return
+
+  if (item.size > 5 * 1024 * 1024) {
+    ElMessage.warning(t('sftp.edit.fileTooLarge'))
+    return
+  }
+  if (item.size > 500 * 1024) {
+    const ok = window.confirm(t('sftp.edit.fileLargeWarning', { size: formatFileSize(item.size) }))
+    if (!ok) return
+  }
+
+  editorPath.value = joinPath(cwd.value, item.name)
+  editorTitle.value = t('sftp.dialog.editTitle', { path: editorPath.value })
+  editorContent.value = ''
+  editorVisible.value = true
+
+  try {
+    const rawB64 = await SftpGetContent(sid, editorPath.value)
+    const bytes = fromBase64(rawB64)
+    if (isBinaryContent(bytes)) {
+      editorVisible.value = false
+      ElMessage.warning(t('sftp.edit.binaryFile'))
+      return
+    }
+    const detected = detectEncoding(bytes)
+    editorEncoding.value = detected.encoding
+    const text = decodeContent(bytes, detected.encoding)
+    editorLineEnding.value = detectLineEnding(text)
+    editorContent.value = text
+  } catch (e: any) {
+    editorVisible.value = false
+    ElMessage.error(e?.toString() || 'Failed to read file')
+  }
+}
+
+async function onEditorSave() {
+  const sid = panel.value?.sessionId
+  if (!sid) return
+  editorSaving.value = true
+  try {
+    if (editorMode.value === 'local') {
+      await SftpLocalPutContent(sid, editorPath.value, encodeContent(editorContent.value, editorEncoding.value, editorLineEnding.value))
+      onRefreshLocal()
+    } else {
+      await SftpPutContent(sid, editorPath.value, encodeContent(editorContent.value, editorEncoding.value, editorLineEnding.value))
+      onRefreshRemote()
+    }
+    ElMessage.success(t('sftp.dialog.confirm'))
+    editorVisible.value = false
+  } catch (e: any) {
+    ElMessage.error(e?.toString() || 'Failed to save file')
+  } finally {
+    editorSaving.value = false
+  }
+}
+
+// --- Local file handlers ---
+
+async function onLocalEditFile(item: FileItem) {
+  if (item.isDir) return
+  const sid = panel.value?.sessionId
+  if (!sid) return
+  if (item.size > 5 * 1024 * 1024) {
+    ElMessage.warning(t('sftp.edit.fileTooLarge'))
+    return
+  }
+  editorPath.value = joinPath(localCwd.value, item.name)
+  editorTitle.value = t('sftp.dialog.editTitle', { path: editorPath.value })
+  editorMode.value = 'local'
+  editorContent.value = ''
+  editorVisible.value = true
+  try {
+    const rawB64 = await SftpLocalGetContent(sid, editorPath.value)
+    const bytes = fromBase64(rawB64)
+    if (isBinaryContent(bytes)) { editorVisible.value = false; ElMessage.warning(t('sftp.edit.binaryFile')); return }
+    const detected = detectEncoding(bytes)
+    editorEncoding.value = detected.encoding
+    const text = decodeContent(bytes, detected.encoding)
+    editorLineEnding.value = detectLineEnding(text)
+    editorContent.value = text
+  } catch (e: any) {
+    editorVisible.value = false
+    ElMessage.error(e?.toString() || 'Failed to read file')
+  }
+}
+
+function onLocalNewFile() {
+  newFileName.value = 'newfile.txt'
+  newFileMode.value = 'local'
+  newFileError.value = ''
+  newFileVisible.value = true
+}
+
+let localPasteCancelled = false
+
+function onLocalCancelPaste() {
+  localPasteCancelled = true
+  pasteLoading.value = false
+}
+
+async function onLocalPaste() {
+  const sid = panel.value?.sessionId
+  if (!sid || !localClipboard.value) return
+  const { items, sourceDir, mode } = localClipboard.value
+  localPasteCancelled = false
+  pasteLoading.value = true
+  const targetDir = localCwd.value
+  if (mode === 'cut' && sourceDir === targetDir) {
+    ElMessage.warning(t('sftp.paste.cutSameDir'))
+    pasteLoading.value = false
+    return
+  }
+  const existingNames = localFiles.value.map(f => f.name)
+  const conflicts = items.filter(n => existingNames.includes(n))
+  let resolveAction: 'overwrite' | 'rename' | 'cancel' = 'rename'
+  if (conflicts.length > 0) {
+    resolveAction = await showConflictDialog(conflicts)
+    if (resolveAction === 'cancel') { pasteLoading.value = false; return }
+  }
+  let success = 0
+  const failed: string[] = []
+  for (const name of items) {
+    if (localPasteCancelled) break
+    const source = joinPath(sourceDir, name)
+    const target = joinPath(targetDir, name)
+    if (source === target) { /* copy: auto-rename below */ }
+    const forceRename = source === target && mode === 'copy'
+    let resolvedName = name
+    if (forceRename || (resolveAction === 'rename' && existingNames.includes(name))) {
+      resolvedName = autoRename(name, existingNames)
+    }
+    const resolvedTarget = joinPath(targetDir, resolvedName)
+    existingNames.push(resolvedName)
+    try {
+      if (mode === 'copy') await SftpLocalCopy(sid, source, resolvedTarget)
+      else await SftpLocalMove(sid, source, resolvedTarget)
+      success++
+    } catch (e: any) { failed.push(name + ': ' + (e?.toString() || 'unknown')) }
+  }
+  pasteLoading.value = false
+  if (!localPasteCancelled) {
+    if (failed.length > 0) ElMessage.error(`Copied/Moved ${success}/${items.length}, ${failed.length} failed`)
+    else ElMessage.success(t('sftp.paste'))
+  }
+  if (!localPasteCancelled) localClipboard.value = null
+  onRefreshLocal()
+}
+
+// --- New File handlers ---
+
+function onNewFile() {
+  newFileName.value = 'newfile.txt'
+  newFileMode.value = 'remote'
+  newFileError.value = ''
+  newFileVisible.value = true
+}
+
+async function onNewFileCreate() {
+  const name = newFileName.value.trim()
+  if (!name) { newFileError.value = t('sftp.dialog.newFileEmpty'); return }
+  if (name.includes('/') || name.includes('\\')) { newFileError.value = t('sftp.dialog.newFileInvalid'); return }
+  const sid = panel.value?.sessionId
+  if (!sid) return
+  const isLocal = newFileMode.value === 'local'
+  const existingNames = (isLocal ? localFiles.value : remoteFiles.value).map(f => f.name)
+  const finalName = autoRename(name, existingNames)
+  const targetPath = joinPath(isLocal ? localCwd.value : cwd.value, finalName)
+  newFileCreating.value = true
+  try {
+    if (isLocal) {
+      await SftpLocalPutContent(sid, targetPath, '')
+      onRefreshLocal()
+    } else {
+      await SftpPutContent(sid, targetPath, '')
+      onRefreshRemote()
+    }
+    ElMessage.success(t('sftp.dialog.confirm'))
+    newFileVisible.value = false
+  } catch (e: any) {
+    ElMessage.error(e?.toString() || 'Failed to create file')
+  } finally {
+    newFileCreating.value = false
+  }
+}
+
 // Dialog helpers
 function openDialog(
   type: 'rename' | 'mkdir' | 'chmod' | 'delete',
@@ -891,6 +1577,92 @@ function onDropRemote(e: DragEvent) {
   padding: 12px 24px;
   border: 2px dashed rgba(255, 255, 255, 0.6);
   border-radius: var(--radius-md);
+}
+
+.editor-container {
+  display: flex;
+  height: 55vh;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.editor-container:focus-within {
+  border-color: var(--el-color-primary);
+}
+.editor-line-numbers {
+  flex-shrink: 0;
+  min-width: 36px;
+  padding: 12px 8px 12px 12px;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--text-disabled);
+  background: var(--el-fill-color-light);
+  text-align: right;
+  overflow: hidden;
+  user-select: none;
+  white-space: pre;
+}
+.editor-textarea {
+  flex: 1;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 24px;
+  background: var(--el-fill-color-blank);
+  color: var(--el-text-color-primary);
+  border: none;
+  padding: 12px;
+  white-space: pre;
+  overflow-x: auto;
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+  tab-size: 4;
+}
+
+.conflict-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 8px 0;
+  padding-left: 20px;
+}
+.conflict-list li {
+  font-size: 13px;
+  padding: 2px 0;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.editor-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.editor-footer-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.editor-textarea-wrap {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  overflow-x: hidden;
+}
+
+.editor-mirror {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  visibility: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  padding: 0;
 }
 </style>
 

@@ -153,7 +153,11 @@ export function SftpChangeRemoteDir(arg1:string,arg2:string):Promise<session.Fil
 
 export function SftpChmod(arg1:string,arg2:string,arg3:string):Promise<void>;
 
+export function SftpCopy(arg1:string,arg2:string,arg3:string):Promise<void>;
+
 export function SftpGet(arg1:string,arg2:string,arg3:string,arg4:boolean):Promise<string>;
+
+export function SftpGetContent(arg1:string,arg2:string):Promise<string>;
 
 export function SftpListLocal(arg1:string,arg2:string):Promise<session.FileListResult>;
 
@@ -161,13 +165,23 @@ export function SftpListLocalDrives(arg1:string):Promise<Array<session.FileItem>
 
 export function SftpListRemote(arg1:string,arg2:string):Promise<session.FileListResult>;
 
+export function SftpLocalCopy(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function SftpLocalGetContent(arg1:string,arg2:string):Promise<string>;
+
 export function SftpLocalMkdir(arg1:string,arg2:string):Promise<void>;
+
+export function SftpLocalMove(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function SftpLocalPutContent(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function SftpLocalRemove(arg1:string,arg2:string,arg3:boolean):Promise<void>;
 
 export function SftpLocalRename(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function SftpMakeDir(arg1:string,arg2:string):Promise<void>;
+
+export function SftpMove(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function SftpPauseTransfer(arg1:string,arg2:string):Promise<void>;
 

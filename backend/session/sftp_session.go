@@ -9,6 +9,7 @@ import (
 	osUser "os/user"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -580,6 +581,53 @@ func (s *SFTPSession) LocalMkdir(dir string) error {
 	return os.MkdirAll(p, 0755)
 }
 
+// LocalGetContent reads a local file's full content.
+func (s *SFTPSession) LocalGetContent(localPath string) ([]byte, error) {
+	p := localPath
+	if !filepath.IsAbs(p) {
+		p = filepath.Join(s.localCwd, p)
+	}
+	return os.ReadFile(p)
+}
+
+// LocalPutContent writes content to a local file, creating parent directories as needed.
+func (s *SFTPSession) LocalPutContent(localPath string, content []byte) error {
+	p := localPath
+	if !filepath.IsAbs(p) {
+		p = filepath.Join(s.localCwd, p)
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(p, content, 0644)
+}
+
+// LocalCopy copies a local file or directory.
+func (s *SFTPSession) LocalCopy(oldPath, newPath string) error {
+	old := oldPath
+	if !filepath.IsAbs(old) {
+		old = filepath.Join(s.localCwd, old)
+	}
+	n := newPath
+	if !filepath.IsAbs(n) {
+		n = filepath.Join(s.localCwd, n)
+	}
+	return localCopyRecursive(old, n)
+}
+
+// LocalMove moves a local file or directory (rename, same filesystem only).
+func (s *SFTPSession) LocalMove(oldPath, newPath string) error {
+	old := oldPath
+	if !filepath.IsAbs(old) {
+		old = filepath.Join(s.localCwd, old)
+	}
+	n := newPath
+	if !filepath.IsAbs(n) {
+		n = filepath.Join(s.localCwd, n)
+	}
+	return os.Rename(old, n)
+}
+
 // PutContent writes raw content directly to a remote file via SFTP.
 func (s *SFTPSession) PutContent(remotePath string, content []byte) error {
 	if err := s.requireClient(); err != nil {
@@ -601,6 +649,77 @@ func (s *SFTPSession) PutContent(remotePath string, content []byte) error {
 	defer f.Close()
 	_, err = f.Write(content)
 	return err
+}
+
+// GetContent reads the full content of a remote file.
+func (s *SFTPSession) GetContent(remotePath string) ([]byte, error) {
+	if err := s.requireClient(); err != nil {
+		return nil, err
+	}
+	rp := remotePath
+	if !path.IsAbs(rp) {
+		rp = path.Join(s.cwd, rp)
+	}
+	f, err := s.sftpClient.Open(rp)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return io.ReadAll(f)
+}
+
+// shellEscape returns a safely single-quoted string for shell commands.
+func shellEscape(str string) string {
+	return "'" + strings.ReplaceAll(str, "'", "'\\''") + "'"
+}
+
+// Copy copies a file or directory on the remote server using ssh exec cp.
+// Zero data transfer to local — the server handles the copy directly.
+func (s *SFTPSession) Copy(oldPath, newPath string) error {
+	if err := s.requireClient(); err != nil {
+		return err
+	}
+	old := oldPath
+	if !path.IsAbs(old) {
+		old = path.Join(s.cwd, old)
+	}
+	n := newPath
+	if !path.IsAbs(n) {
+		n = path.Join(s.cwd, n)
+	}
+	session, err := s.sshClient.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+	return session.Run(fmt.Sprintf("cp -r -- %s %s", shellEscape(old), shellEscape(n)))
+}
+
+// Move moves a file or directory on the remote server.
+// Tries SFTP Rename first (atomic, server-side), falls back to shell mv.
+func (s *SFTPSession) Move(oldPath, newPath string) error {
+	if err := s.requireClient(); err != nil {
+		return err
+	}
+	old := oldPath
+	if !path.IsAbs(old) {
+		old = path.Join(s.cwd, old)
+	}
+	n := newPath
+	if !path.IsAbs(n) {
+		n = path.Join(s.cwd, n)
+	}
+	// Try SFTP native rename first (same filesystem, zero data transfer)
+	if err := s.sftpClient.Rename(old, n); err == nil {
+		return nil
+	}
+	// Fallback: shell mv handles cross-filesystem moves
+	session, err := s.sshClient.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+	return session.Run(fmt.Sprintf("mv -- %s %s", shellEscape(old), shellEscape(n)))
 }
 
 // CancelTransfer cancels an ongoing transfer task.
@@ -648,6 +767,41 @@ func (s *SFTPSession) ResumeTransfer(taskID string) error {
 	}
 
 // --- Recursive helpers ---
+
+// localCopyRecursive copies files and directories on the local filesystem.
+func localCopyRecursive(src, dst string) error {
+	si, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if si.IsDir() {
+		if err := os.MkdirAll(dst, si.Mode()); err != nil {
+			return err
+		}
+		entries, err := os.ReadDir(src)
+		if err != nil {
+			return err
+		}
+		for _, entry := range entries {
+			if err := localCopyRecursive(filepath.Join(src, entry.Name()), filepath.Join(dst, entry.Name())); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, si.Mode())
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	return err
+}
 
 func (s *SFTPSession) rmRecursive(p string) error {
 	fi, err := s.sftpClient.Stat(p)
