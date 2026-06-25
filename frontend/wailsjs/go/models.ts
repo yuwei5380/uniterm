@@ -294,6 +294,7 @@ export namespace session {
 	    dbType?: string;
 	    dbName?: string;
 	    postLoginScript?: string;
+	    postLoginExpectSteps?: PostLoginExpectStep[];
 	    tunnelSSHConnId?: string;
 	    sftpMaxConcurrency?: number;
 	    ftpEncryption?: string;
@@ -323,11 +324,30 @@ export namespace session {
 	        this.dbType = source["dbType"];
 	        this.dbName = source["dbName"];
 	        this.postLoginScript = source["postLoginScript"];
+	        this.postLoginExpectSteps = source["postLoginExpectSteps"]?.map((item: any) => new PostLoginExpectStep(item));
 	        this.tunnelSSHConnId = source["tunnelSSHConnId"];
 	        this.sftpMaxConcurrency = source["sftpMaxConcurrency"];
 	        this.ftpEncryption = source["ftpEncryption"];
 	        this.ftpPassive = source["ftpPassive"];
 	        this.ftpEncoding = source["ftpEncoding"];
+	    }
+	}
+	export class PostLoginExpectStep {
+	    expect: string;
+	    send: string;
+	    enter: boolean;
+	    timeoutSecond?: number;
+
+	    static createFrom(source: any = {}) {
+	        return new PostLoginExpectStep(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.expect = source["expect"];
+	        this.send = source["send"];
+	        this.enter = source["enter"];
+	        this.timeoutSecond = source["timeoutSecond"];
 	    }
 	}
 	export class ConnectionGroup {
