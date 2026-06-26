@@ -44,6 +44,13 @@ func NewSSHSession(id string) *SSHSession {
 	}
 }
 
+func shouldPromptForSSHPassword(config ConnectionConfig) bool {
+	if config.Password != "" {
+		return false
+	}
+	return config.AuthType == "" || config.AuthType == "password"
+}
+
 func (s *SSHSession) Connect(config ConnectionConfig) error {
 	s.setStatus(StatusConnecting)
 	s.title = fmt.Sprintf("%s@%s", config.User, config.Host)
@@ -59,10 +66,10 @@ func (s *SSHSession) Connect(config ConnectionConfig) error {
 		s.mu.Unlock()
 	}()
 
-	// If no password is stored, prompt the user in the terminal before the
-	// SSH handshake. This covers servers that do not advertise
+	// For password auth without a stored password, prompt in the terminal
+	// before the SSH handshake. This covers servers that do not advertise
 	// keyboard-interactive support (the kbCallback fallback below).
-	if config.Password == "" {
+	if shouldPromptForSSHPassword(config) {
 		s.emitData([]byte("\r\nPassword: "))
 		var answer string
 	promptLoop:
