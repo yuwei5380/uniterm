@@ -42,6 +42,7 @@
   "conn.save": "Сохранить",
   "conn.saveOnly": "Только сохранить",
   "conn.hostRequired": "Укажите хост",
+  "conn.advanced": "Дополнительно",
   "conn.postLoginScript": "Скрипт после входа",
   "conn.postLoginScriptPlaceholder": "По одной команде на строку, выполняются последовательно после входа",
   "conn.group": "Группа",

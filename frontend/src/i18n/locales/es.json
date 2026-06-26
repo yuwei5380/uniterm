@@ -42,6 +42,7 @@
   "conn.save": "Guardar",
   "conn.saveOnly": "Solo Guardar",
   "conn.hostRequired": "El host es obligatorio",
+  "conn.advanced": "Avanzado",
   "conn.postLoginScript": "Script Posterior al Inicio de Sesión",
   "conn.postLoginScriptPlaceholder": "Un comando por línea, ejecutados secuencialmente después del inicio de sesión",
   "conn.group": "Grupo",

@@ -42,6 +42,7 @@
   "conn.save": "저장",
   "conn.saveOnly": "저장만 하기",
   "conn.hostRequired": "호스트를 입력해 주세요",
+  "conn.advanced": "고급 설정",
   "conn.postLoginScript": "로그인 후 스크립트",
   "conn.postLoginScriptPlaceholder": "한 줄에 하나의 명령어를 입력하면 로그인 후 순차적으로 실행됩니다",
   "conn.group": "그룹",

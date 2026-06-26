@@ -42,6 +42,7 @@
   "conn.save": "保存",
   "conn.saveOnly": "保存のみ",
   "conn.hostRequired": "ホストは必須です",
+  "conn.advanced": "詳細設定",
   "conn.postLoginScript": "ログイン後スクリプト",
   "conn.postLoginScriptPlaceholder": "1行に1コマンド、ログイン後に順次実行されます",
   "conn.group": "グループ",

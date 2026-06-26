@@ -43,6 +43,7 @@
   "conn.save": "Save",
   "conn.saveOnly": "Save Only",
   "conn.hostRequired": "Host is required",
+  "conn.advanced": "Advanced",
   "conn.postLoginScript": "Post-login Script",
   "conn.postLoginScriptPlaceholder": "One command per line, executed sequentially after login",
   "conn.postLoginModeScript": "Script",

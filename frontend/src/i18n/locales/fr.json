@@ -42,6 +42,7 @@
   "conn.save": "Enregistrer",
   "conn.saveOnly": "Enregistrer uniquement",
   "conn.hostRequired": "L'hôte est requis",
+  "conn.advanced": "Avancé",
   "conn.postLoginScript": "Script post-connexion",
   "conn.postLoginScriptPlaceholder": "Une commande par ligne, exécutées séquentiellement après la connexion",
   "conn.group": "Groupe",

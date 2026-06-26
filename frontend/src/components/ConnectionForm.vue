@@ -80,6 +80,14 @@
       <el-form-item v-if="form.authType === 'key' && (form.type === 'ssh' || form.type === 'mosh')" :label="t('conn.keyPath')">
         <el-input v-model="form.keyPath" :placeholder="t('conn.keyPathPlaceholder')" />
       </el-form-item>
+      <el-form-item v-if="form.type === 'database' && form.dbType !== 'rqlite'" :label="t('db.databases')">
+        <el-input v-model="form.dbName" :placeholder="t('db.databases')" />
+      </el-form-item>
+      <div class="advanced-toggle" @click="showAdvanced = !showAdvanced">
+        <el-icon class="advanced-arrow" :class="{ expanded: showAdvanced }"><ChevronRight :size="14" /></el-icon>
+        <span>{{ t('conn.advanced') }}</span>
+      </div>
+      <template v-if="showAdvanced">
       <template v-if="form.type === 'rdp'">
         <el-form-item :label="t('rdp.resolution')">
           <el-select v-model="rdpResolution" placeholder="1280×720">
@@ -95,9 +103,6 @@
           <el-switch v-model="form.rdpSmartSizing" />
         </el-form-item>
       </template>
-      <el-form-item v-if="form.type === 'database' && form.dbType !== 'rqlite'" :label="t('db.databases')">
-        <el-input v-model="form.dbName" :placeholder="t('db.databases')" />
-      </el-form-item>
       <el-form-item v-if="form.type === 'ssh' || form.type === 'telnet' || form.type === 'mosh'" :label="t('conn.postLoginScript')">
         <div class="post-login-config">
           <el-radio-group v-model="postLoginMode" size="small">
@@ -192,6 +197,7 @@
           />
         </el-select>
       </el-form-item>
+      </template>
     </el-form>
     <template #footer>
       <el-button @click="visible = false">{{ t('conn.cancel') }}</el-button>
@@ -224,7 +230,7 @@ import { useConnectionStore } from '../stores/connectionStore'
 import { useI18n } from '../i18n'
 import type { ConnectionConfig, PostLoginExpectStep } from '../types/session'
 import { GetPlatform } from '../../wailsjs/go/main/App'
-import { Plus, Trash2 } from '@lucide/vue'
+import { Plus, Trash2, ChevronRight } from '@lucide/vue'
 
 const { t } = useI18n()
 const connectionStore = useConnectionStore()
@@ -232,6 +238,7 @@ const connectionStore = useConnectionStore()
 const isWindows = ref(true)
 const passwordInputKey = ref(0)
 const postLoginMode = ref<'script' | 'expect'>('script')
+const showAdvanced = ref(false)
 
 onMounted(async () => {
   try { isWindows.value = (await GetPlatform()) === 'windows' } catch (_) {}
@@ -561,6 +568,35 @@ function onConnect() {
 </script>
 
 <style scoped>
+.advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 0 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-secondary, #909399);
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-subtle, #e4e7ed);
+  transition: color 0.15s;
+}
+
+.advanced-toggle:hover {
+  color: var(--accent, #409eff);
+}
+
+.advanced-arrow {
+  transition: transform 0.2s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.advanced-arrow.expanded {
+  transform: rotate(90deg);
+}
+
 .post-login-config {
   display: flex;
   flex-direction: column;

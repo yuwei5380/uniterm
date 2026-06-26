@@ -43,6 +43,7 @@
   "conn.save": "保存",
   "conn.saveOnly": "仅保存",
   "conn.hostRequired": "主机地址不能为空",
+  "conn.advanced": "高级配置",
   "conn.postLoginScript": "登录后执行",
   "conn.postLoginScriptPlaceholder": "每行一条命令，连接成功后依次执行",
   "conn.postLoginModeScript": "脚本",

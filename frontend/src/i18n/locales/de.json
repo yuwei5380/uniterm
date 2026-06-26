@@ -42,6 +42,7 @@
   "conn.save": "Speichern",
   "conn.saveOnly": "Nur speichern",
   "conn.hostRequired": "Host ist erforderlich",
+  "conn.advanced": "Erweitert",
   "conn.postLoginScript": "Post-Login-Skript",
   "conn.postLoginScriptPlaceholder": "Ein Befehl pro Zeile, werden nach dem Login nacheinander ausgeführt",
   "conn.group": "Gruppe",
