@@ -10,6 +10,10 @@ export function AddIndex(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['AddIndex'](arg1, arg2, arg3, arg4);
 }
 
+export function AppendFileBase64(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AppendFileBase64'](arg1, arg2, arg3);
+}
+
 export function CancelChatStream() {
   return window['go']['main']['App']['CancelChatStream']();
 }
@@ -76,6 +80,10 @@ export function ExecuteStatement(arg1, arg2, arg3) {
 
 export function FetchModels(arg1, arg2) {
   return window['go']['main']['App']['FetchModels'](arg1, arg2);
+}
+
+export function FileSize(arg1) {
+  return window['go']['main']['App']['FileSize'](arg1);
 }
 
 export function FrontendLog(arg1, arg2) {
@@ -220,6 +228,10 @@ export function RDPShow(arg1) {
 
 export function ReadFileBase64(arg1) {
   return window['go']['main']['App']['ReadFileBase64'](arg1);
+}
+
+export function ReadFileChunkBase64(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ReadFileChunkBase64'](arg1, arg2, arg3);
 }
 
 export function RemoveTempFile(arg1) {

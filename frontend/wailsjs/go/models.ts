@@ -296,6 +296,8 @@ export namespace session {
 	    postLoginScript?: string;
 	    postLoginExpectSteps?: PostLoginExpectStep[];
 	    tunnelSSHConnId?: string;
+	    tunnelSSHUser?: string;
+	    tunnelSSHPassword?: string;
 	    sftpMaxConcurrency?: number;
 	    ftpEncryption?: string;
 	    ftpPassive: boolean;
@@ -326,6 +328,8 @@ export namespace session {
 	        this.postLoginScript = source["postLoginScript"];
 	        this.postLoginExpectSteps = source["postLoginExpectSteps"]?.map((item: any) => new PostLoginExpectStep(item));
 	        this.tunnelSSHConnId = source["tunnelSSHConnId"];
+	        this.tunnelSSHUser = source["tunnelSSHUser"];
+	        this.tunnelSSHPassword = source["tunnelSSHPassword"];
 	        this.sftpMaxConcurrency = source["sftpMaxConcurrency"];
 	        this.ftpEncryption = source["ftpEncryption"];
 	        this.ftpPassive = source["ftpPassive"];
