@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" :title="isEdit ? t('conn.editTitle') : t('conn.newTitle')" width="500px">
+  <el-dialog v-model="visible" :title="isEdit ? t('conn.editTitle') : t('conn.newTitle')" width="640px">
     <el-form id="conn-form" :model="form" label-width="100px" @submit.prevent="onSave">
       <el-form-item :label="t('conn.name')">
         <el-input v-model="form.name" :placeholder="t('conn.namePlaceholder')" />
@@ -99,12 +99,60 @@
         <el-input v-model="form.dbName" :placeholder="t('db.databases')" />
       </el-form-item>
       <el-form-item v-if="form.type === 'ssh' || form.type === 'telnet' || form.type === 'mosh'" :label="t('conn.postLoginScript')">
-        <el-input
-          v-model="form.postLoginScript"
-          type="textarea"
-          :rows="3"
-          :placeholder="t('conn.postLoginScriptPlaceholder')"
-        />
+        <div class="post-login-config">
+          <el-radio-group v-model="postLoginMode" size="small">
+            <el-radio-button label="script">{{ t('conn.postLoginModeScript') }}</el-radio-button>
+            <el-radio-button label="expect" :disabled="form.type !== 'ssh'">{{ t('conn.postLoginModeExpect') }}</el-radio-button>
+          </el-radio-group>
+          <el-input
+            v-if="postLoginMode === 'script'"
+            v-model="form.postLoginScript"
+            type="textarea"
+            :rows="3"
+            :placeholder="t('conn.postLoginScriptPlaceholder')"
+          />
+          <div v-else class="expect-steps">
+            <div
+              v-for="(step, idx) in form.postLoginExpectSteps"
+              :key="idx"
+              class="expect-step"
+            >
+              <span class="step-index">{{ idx + 1 }}</span>
+              <el-input
+                v-model="step.expect"
+                :placeholder="t('conn.expectPlaceholder')"
+                class="expect-input"
+              />
+              <el-input
+                v-model="step.send"
+                :placeholder="t('conn.sendPlaceholder')"
+                class="send-input"
+              />
+              <el-input-number
+                v-model="step.timeoutSecond"
+                :min="1"
+                :max="120"
+                controls-position="right"
+                class="timeout-input"
+              />
+              <el-checkbox v-model="step.enter">{{ t('conn.expectEnter') }}</el-checkbox>
+              <el-button
+                link
+                type="danger"
+                class="remove-step-btn"
+                :title="t('conn.expectRemoveStep')"
+                @click="removeExpectStep(idx)"
+              >
+                <Trash2 :size="14" />
+              </el-button>
+            </div>
+            <el-button class="add-step-btn" @click="addExpectStep">
+              <Plus :size="14" />
+              {{ t('conn.expectAddStep') }}
+            </el-button>
+            <div class="expect-help">{{ t('conn.expectVariableHint') }}</div>
+          </div>
+        </div>
       </el-form-item>
       <el-form-item v-if="form.type === 'ssh'" :label="t('conn.sftpMaxConcurrency')">
         <el-input-number v-model="form.sftpMaxConcurrency" :min="0" :max="20" />
@@ -174,14 +222,16 @@
 import { reactive, computed, watch, ref, onMounted } from 'vue'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useI18n } from '../i18n'
-import type { ConnectionConfig } from '../types/session'
+import type { ConnectionConfig, PostLoginExpectStep } from '../types/session'
 import { GetPlatform } from '../../wailsjs/go/main/App'
+import { Plus, Trash2 } from '@lucide/vue'
 
 const { t } = useI18n()
 const connectionStore = useConnectionStore()
 
 const isWindows = ref(true)
 const passwordInputKey = ref(0)
+const postLoginMode = ref<'script' | 'expect'>('script')
 
 onMounted(async () => {
   try { isWindows.value = (await GetPlatform()) === 'windows' } catch (_) {}
@@ -269,6 +319,7 @@ const form = reactive<ConnectionConfig>({
   dbType: '',
   dbName: '',
   postLoginScript: '',
+  postLoginExpectSteps: [],
   sftpMaxConcurrency: 5,
   ftpEncryption: 'none',
   ftpPassive: true,
@@ -301,7 +352,8 @@ watch(() => props.editConfig, (config) => {
     if (!config.id) {
       resetForm()
     }
-    Object.assign(form, { ...config })
+    Object.assign(form, { ...config, postLoginExpectSteps: cloneExpectSteps(config.postLoginExpectSteps || []) })
+    postLoginMode.value = (config.postLoginExpectSteps?.length || 0) > 0 ? 'expect' : 'script'
     selectedGroupId.value = config.groupId || undefined
     // Sync resolution dropdown to the config's fixed size
     const match = rdpResolutions.find(r => r.w === config.rdpFixedWidth && r.h === config.rdpFixedHeight)
@@ -324,6 +376,9 @@ watch(() => props.defaultGroupId, (gid) => {
 
 // Auto-switch default port when changing type
 watch(() => form.type, (newType) => {
+  if (newType !== 'ssh' && postLoginMode.value === 'expect') {
+    postLoginMode.value = 'script'
+  }
   if (isEdit.value) return
   if (newType === 'ssh') form.port = 22
   else if (newType === 'telnet') form.port = 23
@@ -335,6 +390,12 @@ watch(() => form.type, (newType) => {
   else if (newType === 'ftp') form.port = 21
   if (REMOTE_TYPES.includes(newType) || newType === 'database') {
     form.authType = 'password'
+  }
+})
+
+watch(postLoginMode, (mode) => {
+  if (mode === 'expect' && (!form.postLoginExpectSteps || form.postLoginExpectSteps.length === 0)) {
+    addExpectStep()
   }
 })
 
@@ -372,6 +433,8 @@ function resetForm() {
   form.dbType = ''
   form.dbName = ''
   form.postLoginScript = ''
+  form.postLoginExpectSteps = []
+  postLoginMode.value = 'script'
   form.sftpMaxConcurrency = 5
   form.ftpEncryption = 'none'
   form.ftpPassive = true
@@ -424,6 +487,12 @@ function generateUniqueName(name: string): string {
 
 function normalizeForm(): ConnectionConfig {
   const normalized = { ...form }
+  normalized.postLoginExpectSteps = normalizeExpectSteps(form.postLoginExpectSteps || [])
+  if (postLoginMode.value === 'script') {
+    normalized.postLoginExpectSteps = []
+  } else {
+    normalized.postLoginScript = ''
+  }
   if (!normalized.host.trim()) {
     throw new Error(t('conn.hostRequired'))
   }
@@ -431,6 +500,37 @@ function normalizeForm(): ConnectionConfig {
     normalized.name = generateUniqueName(normalized.host.trim())
   }
   return normalized
+}
+
+function cloneExpectSteps(steps: PostLoginExpectStep[]): PostLoginExpectStep[] {
+  return steps.map(step => ({ ...step }))
+}
+
+function normalizeExpectSteps(steps: PostLoginExpectStep[]): PostLoginExpectStep[] {
+  return steps
+    .map(step => ({
+      expect: step.expect.trim(),
+      send: step.send,
+      enter: step.enter !== false,
+      timeoutSecond: step.timeoutSecond || 10
+    }))
+    .filter(step => step.expect || step.send)
+}
+
+function addExpectStep() {
+  if (!form.postLoginExpectSteps) {
+    form.postLoginExpectSteps = []
+  }
+  form.postLoginExpectSteps.push({
+    expect: '',
+    send: '',
+    enter: true,
+    timeoutSecond: 10
+  })
+}
+
+function removeExpectStep(index: number) {
+  form.postLoginExpectSteps?.splice(index, 1)
 }
 
 function onSave() {
@@ -459,3 +559,52 @@ function onConnect() {
   }
 }
 </script>
+
+<style scoped>
+.post-login-config {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.expect-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.expect-step {
+  display: grid;
+  grid-template-columns: 22px minmax(110px, 1fr) minmax(130px, 1fr) 78px 62px 28px;
+  gap: 6px;
+  align-items: center;
+}
+
+.step-index {
+  color: var(--text-color-secondary, #909399);
+  font-size: 12px;
+  text-align: right;
+}
+
+.timeout-input {
+  width: 78px;
+}
+
+.remove-step-btn {
+  min-width: 28px;
+}
+
+.add-step-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.expect-help {
+  color: var(--text-color-secondary, #909399);
+  font-size: 12px;
+  line-height: 1.4;
+}
+</style>

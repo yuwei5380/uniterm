@@ -17,13 +17,13 @@ type ConnectionGroup struct {
 }
 
 type ConnectionConfig struct {
-	ID       string  `json:"id"`
-	Name     string  `json:"name"`
-	Type     string  `json:"type"`
-	Host     string  `json:"host"`
-	Port     int     `json:"port"`
-	User     string  `json:"user"`
-	AuthType string  `json:"authType"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	User     string `json:"user"`
+	AuthType string `json:"authType"`
 	// Password is stored in plaintext JSON. Will be migrated to OS keychain in a future iteration.
 	Password string  `json:"password,omitempty"`
 	KeyPath  string  `json:"keyPath,omitempty"`
@@ -39,6 +39,8 @@ type ConnectionConfig struct {
 	DBName string `json:"dbName,omitempty"` // default database name
 	// SSH post-login script: commands to execute after successful login
 	PostLoginScript string `json:"postLoginScript,omitempty"`
+	// Post-login expect/send automation: interactive steps executed after login.
+	PostLoginExpectSteps []PostLoginExpectStep `json:"postLoginExpectSteps,omitempty"`
 	// SSH tunnel: reference to an existing SSH connection used as a jump host.
 	// When set, the connection goes through local port forwarding:
 	//   127.0.0.1:auto-port → tunnel SSH → target Host:Port

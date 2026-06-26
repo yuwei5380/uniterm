@@ -1,6 +1,7 @@
 package session
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -29,6 +30,7 @@ type SSHSession struct {
 	quitOnce     sync.Once
 	lastReadTime atomic.Int64
 	authAnswerCh chan []byte
+	expectOutput *postLoginOutputBuffer
 }
 
 func NewSSHSession(id string) *SSHSession {
@@ -49,6 +51,7 @@ func (s *SSHSession) Connect(config ConnectionConfig) error {
 	// Set up keyboard-interactive auth input channel.
 	s.mu.Lock()
 	s.authAnswerCh = make(chan []byte, 256)
+	s.expectOutput = newPostLoginOutputBuffer()
 	s.mu.Unlock()
 	defer func() {
 		s.mu.Lock()
@@ -91,7 +94,6 @@ func (s *SSHSession) Connect(config ConnectionConfig) error {
 		s.emitData([]byte("\r\n"))
 		config.Password = answer
 	}
-
 
 	kbCallback := func(user, instruction string, questions []string, echos []bool) ([]string, error) {
 		answers := make([]string, len(questions))
@@ -235,7 +237,7 @@ func (s *SSHSession) Connect(config ConnectionConfig) error {
 	go s.readLoop()
 	go s.readStderr()
 	go s.startKeepAlive()
-	go s.runPostLoginScript(config.PostLoginScript)
+	go s.runPostLoginAutomation(config)
 
 	return nil
 }
@@ -262,6 +264,7 @@ func (s *SSHSession) readLoop() {
 		if n > 0 {
 			s.lastReadTime.Store(time.Now().UnixNano())
 			data := append([]byte(nil), buf[:n]...)
+			s.offerExpectOutput(data)
 			if s.IsZmodemMode() {
 				s.emitBinary(data)
 			} else if looksLikeZmodemHeader(data) {
@@ -280,6 +283,67 @@ func (s *SSHSession) readLoop() {
 			s.Disconnect()
 			return
 		}
+	}
+}
+
+func (s *SSHSession) offerExpectOutput(data []byte) {
+	s.mu.RLock()
+	output := s.expectOutput
+	s.mu.RUnlock()
+	if output != nil {
+		output.Append(data)
+	}
+}
+
+func (s *SSHSession) runPostLoginAutomation(config ConnectionConfig) {
+	if len(config.PostLoginExpectSteps) > 0 {
+		s.runPostLoginExpect(config)
+		return
+	}
+	s.runPostLoginScript(config.PostLoginScript)
+}
+
+func (s *SSHSession) runPostLoginExpect(config ConnectionConfig) {
+	// Wait for shell to finish initialization so the first prompt can be matched.
+	if !s.waitIdle(5*time.Second, 300*time.Millisecond) {
+		return
+	}
+	s.mu.RLock()
+	output := s.expectOutput
+	s.mu.RUnlock()
+	if output == nil {
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		select {
+		case <-s.quit:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	err := runPostLoginExpectAutomation(ctx, postLoginExpectAutomationConfig{
+		Steps: config.PostLoginExpectSteps,
+		Variables: map[string]string{
+			"host":     config.Host,
+			"user":     config.User,
+			"password": config.Password,
+		},
+		Output: output,
+		Send: func(data []byte) error {
+			if s.stdin == nil {
+				return fmt.Errorf("not connected")
+			}
+			_, err := s.stdin.Write(data)
+			return err
+		},
+		IsConnected:    func() bool { return s.Status() == StatusConnected },
+		DefaultTimeout: 10 * time.Second,
+	})
+	if err != nil && s.Status() == StatusConnected {
+		s.emitData([]byte(fmt.Sprintf("\r\n\x1b[33m[post-login expect: %v]\x1b[0m\r\n", err)))
 	}
 }
 

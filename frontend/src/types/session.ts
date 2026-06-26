@@ -5,6 +5,13 @@ export interface ConnectionGroup {
   name: string
 }
 
+export interface PostLoginExpectStep {
+  expect: string
+  send: string
+  enter: boolean
+  timeoutSecond?: number
+}
+
 export interface ConnectionConfig {
   id: string
   name: string
@@ -25,6 +32,7 @@ export interface ConnectionConfig {
   dbType?: string   // "mysql", "postgres", "rqlite"
   dbName?: string   // default database name
   postLoginScript?: string
+  postLoginExpectSteps?: PostLoginExpectStep[]
   // SSH tunnel: reference to an existing SSH connection used as a jump host
   tunnelSSHConnId?: string
   tunnelSSHUser?: string
