@@ -3,8 +3,9 @@ import {
   SessionEndZmodem,
   SessionWriteBinary,
   SessionWrite,
-  ReadFileBase64,
-  WriteFileBase64,
+  AppendFileBase64,
+  FileSize,
+  ReadFileChunkBase64,
   OpenDirectoryDialog,
   OpenMultipleFilesDialog,
 } from '../../wailsjs/go/main/App'
@@ -44,7 +45,7 @@ export function startZmodemService(options: ZmodemServiceOptions) {
 
   function sender(octets: number[]) {
     const base64 = arrayBufferToBase64(new Uint8Array(octets))
-    const p = SessionWriteBinary(sessionId, base64).catch((err) => {
+    const p = SessionWriteBinary(sessionId, base64).catch(() => {
       // noop
     })
     pendingWrites.push(p)
@@ -165,25 +166,24 @@ async function handleSend(
 ) {
   const store = useZmodemStore()
   const files: string[] = []
-  const rejected: string[] = []
 
   try {
     for (let i = 0; i < paths.length; i++) {
       const path = paths[i]
       const filename = path.split(/[\\/]/).pop() || 'unknown'
       const transferId = `${sessionId}-up-${i}`
-      const fileData = base64ToUint8Array(await ReadFileBase64(path))
+      const fileSize = await FileSize(path)
 
       store.addTransfer(sessionId, {
         id: transferId, sessionId, filename,
-        size: fileData.length, transferred: 0,
+        size: fileSize, transferred: 0,
         direction: 'upload', status: 'transferring', speed: 0,
       })
 
       const xfer: any = await (zsession as any).send_offer({
-        name: filename, size: fileData.length,
+        name: filename, size: fileSize,
         mode: 0o644, mtime: new Date(),
-        files_remaining: 1, bytes_remaining: fileData.length,
+        files_remaining: 1, bytes_remaining: fileSize,
       })
       if (!xfer) {
         store.updateTransfer(sessionId, transferId, {
@@ -194,14 +194,14 @@ async function handleSend(
         return
       }
 
-      // Race sendChunks against abort so cancel during rz can interrupt
+      // Race file sending against abort so cancel during rz can interrupt
       let done = false
       const abortPromise = new Promise<Error>((_, reject) => {
         abortCtl.reject = () => { if (!done) reject(new Error('aborted')) }
       })
       try {
         await Promise.race([
-          sendChunks(xfer, fileData, CHUNK, sessionId, transferId, drainWrites, isAborted),
+          sendFileChunks(xfer, path, fileSize, CHUNK, sessionId, transferId, drainWrites, isAborted),
           abortPromise,
         ])
       } catch (e: any) {
@@ -212,7 +212,7 @@ async function handleSend(
       }
       if (isAborted()) break
 
-      store.updateTransfer(sessionId, transferId, { status: 'completed', transferred: fileData.length })
+      store.updateTransfer(sessionId, transferId, { status: 'completed', transferred: fileSize })
       files.push(filename)
     }
 
@@ -232,30 +232,35 @@ async function handleSend(
 }
 
 const CHUNK = 8192
+const READ_CHUNK = CHUNK * 16
 
-async function sendChunks(
-  xfer: any, data: Uint8Array, chunkSize: number,
+async function sendFileChunks(
+  xfer: any, path: string, size: number, chunkSize: number,
   sessionId: string, transferId: string,
   drainWrites: () => Promise<void>,
   isAborted: () => boolean,
 ) {
   const store = useZmodemStore()
   let offset = 0
-  while (offset < data.length) {
+  while (offset < size) {
     if (isAborted()) throw new Error('aborted')
-    const end = Math.min(offset + chunkSize, data.length)
-    const chunk = Array.from(data.slice(offset, end)) as number[]
-    if (end >= data.length) {
-      xfer.send(chunk); await drainWrites()
-      await xfer.end([]); await drainWrites()
-    } else {
-      xfer.send(chunk); await drainWrites()
-    }
-    offset = end
-    store.updateTransfer(sessionId, transferId, { transferred: offset })
-  }
-}
+    const length = Math.min(READ_CHUNK, size - offset)
+    const data = base64ToUint8Array(await ReadFileChunkBase64(path, offset, length))
+    if (data.length === 0) throw new Error(`Read empty chunk at offset ${offset}`)
 
+    let chunkOffset = 0
+    while (chunkOffset < data.length) {
+      if (isAborted()) throw new Error('aborted')
+      const end = Math.min(chunkOffset + chunkSize, data.length)
+      const chunk = Array.from(data.slice(chunkOffset, end)) as number[]
+      xfer.send(chunk); await drainWrites()
+      chunkOffset = end
+      offset += chunk.length
+      store.updateTransfer(sessionId, transferId, { transferred: offset })
+    }
+  }
+  await xfer.end([]); await drainWrites()
+}
 // ── Download (sz) ────────────────────────────────────────────────────
 
 async function handleReceive(
@@ -298,20 +303,27 @@ async function handleReceive(
         savePath: finalSavePath,
       })
       let received = 0
-      offer.on('input', (payload: number[]) => {
-        received += payload.length
+      let writeChain = Promise.resolve()
+      let writeError: unknown = null
+      const onInput = (payload: number[]) => {
+        const offset = received
+        const chunk = Uint8Array.from(payload)
+        received += chunk.length
         resetIdle()
         store.updateTransfer(sessionId, transferId, { transferred: received })
-      })
+        writeChain = writeChain.then(async () => {
+          if (writeError) return
+          await AppendFileBase64(finalSavePath, arrayBufferToBase64(chunk), offset)
+        }).catch((err) => {
+          writeError = err
+        })
+      }
       try {
-        const chunks: Uint8Array[] = await offer.accept()
-        const totalLen = chunks.reduce((s, c) => s + c.length, 0)
-        const fileData = new Uint8Array(totalLen)
-        let pos = 0
-        for (const c of chunks) { fileData.set(c, pos); pos += c.length }
-        await WriteFileBase64(finalSavePath, arrayBufferToBase64(fileData))
+        await offer.accept({ on_input: onInput })
+        await writeChain
+        if (writeError) throw writeError
         store.updateTransfer(sessionId, transferId, {
-          status: 'completed', transferred: totalLen,
+          status: 'completed', transferred: received,
         })
         files.push(finalSavePath)
       } catch (e: any) {

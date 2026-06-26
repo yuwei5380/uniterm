@@ -11,6 +11,8 @@ export function AddColumn(arg1:string,arg2:string,arg3:string,arg4:database.Colu
 
 export function AddIndex(arg1:string,arg2:string,arg3:string,arg4:database.IndexDef):Promise<void>;
 
+export function AppendFileBase64(arg1:string,arg2:string,arg3:number):Promise<void>;
+
 export function CancelChatStream():Promise<void>;
 
 export function ChatCompletion(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string):Promise<string>;
@@ -44,6 +46,8 @@ export function ExecuteQuery(arg1:string,arg2:string,arg3:string):Promise<databa
 export function ExecuteStatement(arg1:string,arg2:string,arg3:string):Promise<database.ExecResult>;
 
 export function FetchModels(arg1:string,arg2:string):Promise<Array<main.ModelInfo>>;
+
+export function FileSize(arg1:string):Promise<number>;
 
 export function FrontendLog(arg1:string,arg2:string):Promise<void>;
 
@@ -116,6 +120,8 @@ export function RDPSetPosition(arg1:string,arg2:number,arg3:number,arg4:number,a
 export function RDPShow(arg1:string):Promise<void>;
 
 export function ReadFileBase64(arg1:string):Promise<string>;
+
+export function ReadFileChunkBase64(arg1:string,arg2:number,arg3:number):Promise<string>;
 
 export function RemoveTempFile(arg1:string):Promise<void>;
 

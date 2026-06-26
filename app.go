@@ -727,12 +727,92 @@ func (a *App) ReadFileBase64(path string) (string, error) {
 	return base64.StdEncoding.EncodeToString(data), nil
 }
 
+func (a *App) FileSize(path string) (int64, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return 0, fmt.Errorf("stat file: %w", err)
+	}
+	if info.IsDir() {
+		return 0, fmt.Errorf("path is a directory: %s", path)
+	}
+	return info.Size(), nil
+}
+
+func (a *App) ReadFileChunkBase64(path string, offset int64, length int64) (string, error) {
+	if offset < 0 {
+		return "", fmt.Errorf("offset must be non-negative")
+	}
+	if length <= 0 {
+		return "", fmt.Errorf("length must be positive")
+	}
+
+	f, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("open file: %w", err)
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return "", fmt.Errorf("stat file: %w", err)
+	}
+	if info.IsDir() {
+		return "", fmt.Errorf("path is a directory: %s", path)
+	}
+	if offset >= info.Size() {
+		return "", nil
+	}
+	if remaining := info.Size() - offset; length > remaining {
+		length = remaining
+	}
+
+	buf := make([]byte, length)
+	n, err := f.ReadAt(buf, offset)
+	if err != nil && err != io.EOF {
+		return "", fmt.Errorf("read file chunk: %w", err)
+	}
+	return base64.StdEncoding.EncodeToString(buf[:n]), nil
+}
+
 func (a *App) WriteFileBase64(path string, base64Data string) error {
 	data, err := base64.StdEncoding.DecodeString(base64Data)
 	if err != nil {
 		return fmt.Errorf("decode base64: %w", err)
 	}
 	return os.WriteFile(path, data, 0644)
+}
+
+func (a *App) AppendFileBase64(path string, base64Data string, offset int64) error {
+	data, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		return fmt.Errorf("decode base64: %w", err)
+	}
+
+	flag := os.O_CREATE | os.O_WRONLY
+	if offset == 0 {
+		flag |= os.O_TRUNC
+	} else {
+		flag |= os.O_APPEND
+	}
+
+	f, err := os.OpenFile(path, flag, 0644)
+	if err != nil {
+		return fmt.Errorf("open file: %w", err)
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return fmt.Errorf("stat file: %w", err)
+	}
+	if info.Size() != offset {
+		return fmt.Errorf("append offset mismatch: expected %d, got %d", offset, info.Size())
+	}
+
+	if _, err := f.Write(data); err != nil {
+		return fmt.Errorf("write file: %w", err)
+	}
+	return nil
 }
 
 func (a *App) RDPSetPosition(sessionID string, x, y, w, h int) error {
