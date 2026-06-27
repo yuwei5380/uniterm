@@ -20,12 +20,12 @@
 
 - [功能特性](#功能特性)
 - [界面截图](#界面截图)
-- [使用流程](#使用流程)
 - [下载安装](#下载安装)
+- [使用流程](#使用流程)
 - [技术栈](#技术栈)
-- [环境要求](#环境要求)
-- [快速开始](#快速开始)
+- [从源码构建](#从源码构建)
 - [项目结构](#项目结构)
+- [欢迎 Star](#欢迎-star)
 - [反馈与贡献](#反馈与贡献)
 - [开源协议](#开源协议)
 
@@ -49,7 +49,7 @@
 - **远程终端** — 支持 SSH / Telnet / Mosh。支持密码或私钥认证连接远程服务器，其中 SSH、Telnet、Mosh 分别适用于常规远程、老旧/嵌入式设备、高延迟移动网络场景。
 - **本地终端** — 支持 PowerShell / CMD / Git Bash / WSL。与 SSH 会话共享字体、配色和操作设置。
 - **串口终端** — 扫描可用串口并配置波特率、数据位、停止位、校验位后连接，支持本地回显和 CR→CRLF 换行规范化。
-- **文件传输** — 支持 SFTP / FTP / FTPS / Zmodem。双栏并排浏览本地与远程文件。SFTP 基于 SSH，FTP/FTPS 支持显式 TLS、被动/主动模式、字符编码可配置。支持上传、下载、拖拽、删除、重命名等操作，传输任务按标签页独立跟踪，可暂停、继续或取消。SFTP 支持最大并发传输数限制。SSH 终端内支持 Zmodem 协议（`rz`/`sz`），拖拽文件即可上传。
+- **文件传输** — 支持 SFTP / FTP / FTPS / Zmodem。双栏浏览本地与远程文件，SSH 终端内支持 Zmodem 协议（`rz`/`sz`）传输。
 - **远程桌面** — 支持 RDP / VNC / SPICE。可连接 Windows 远程桌面、VNC 和 SPICE。
 - **数据库客户端** — 连接 MySQL / PostgreSQL / rqlite 数据库，支持 SQL 查询执行、表结构浏览、数据行在线编辑，统一界面管理全部数据源。
 - **SSH 隧道** — 端口转发。任何连接可选择已有 SSH 连接作为跳板，自动分配本地端口通过隧道访问目标，支持所有 TCP 协议连接类型。
@@ -95,6 +95,20 @@
   <img src="docs/imgs/screenshot-ai-config.png" alt="AI 模型配置" width="45%" />
 </p>
 
+## 下载安装
+
+前往 [GitHub Releases](https://github.com/ys-ll/uniterm/releases) 下载最新版本：
+
+- **Windows**: 安装包 `uniterm-windows-amd64-installer-*.exe`，或便携版 `uniterm-windows-amd64-portable-*.zip`
+- **macOS**: 下载 `uniterm-darwin-universal-*.dmg`
+- **Linux**: 下载 `uniterm-linux-amd64-*.tar.gz`
+
+### 运行依赖
+
+- **Windows**: WebView2 运行时（Windows 10+ 已内置，更老的系统需安装）
+- **macOS**: 无需额外依赖（使用系统自带 WebKit）
+- **Linux**: `libgtk-3-0` 与 `libwebkit2gtk-4.1-0`（多数桌面发行版已自带）
+
 ## 使用流程
 
 ### SSH 连接
@@ -115,14 +129,6 @@
 2. 选择**连接 SFTP**
 3. 在双栏文件管理器中浏览、上传、下载或拖拽文件
 
-## 下载安装
-
-前往 [GitHub Releases](https://github.com/ys-ll/uniterm/releases) 下载最新版本：
-
-- **Windows**: 下载 `uniterm-windows-amd64-installer-*.exe` 安装包
-- **macOS**: 下载 `uniterm-darwin-universal-*.dmg`
-- **Linux**: 下载 `uniterm-linux-amd64-*.tar.gz`
-
 ## 技术栈
 
 | 层级 | 技术 |
@@ -133,19 +139,9 @@
 | 终端引擎 | xterm.js |
 | AI 协议 | Anthropic Messages API / OpenAI Chat Completions API |
 
-## 环境要求
+## 从源码构建
 
-- [Go](https://go.dev/dl/) 1.23+
-- [Node.js](https://nodejs.org/) 20+
-- [Wails CLI](https://wails.io/docs/gettingstarted/installation) v2
-
-### 平台依赖
-
-- **Windows**: WebView2 运行时（Windows 10+ 已内置）
-- **macOS**: Xcode Command Line Tools
-- **Linux**: `libgtk-3-dev` 和 `libwebkit2gtk-4.1-dev`
-
-## 快速开始
+需要 [Go](https://go.dev/dl/) 1.23+、[Node.js](https://nodejs.org/) 20+ 和 [Wails CLI](https://wails.io/docs/gettingstarted/installation) v2。此外，macOS 需 Xcode Command Line Tools，Linux 需 `libgtk-3-dev` 与 `libwebkit2gtk-4.1-dev`。
 
 ```bash
 git clone https://github.com/ys-ll/uniterm.git
@@ -177,11 +173,9 @@ uniTerm/
 └── wails.json
 ```
 
-## 反馈与贡献
+## 欢迎 Star
 
-欢迎通过 [GitHub Issues](https://github.com/ys-ll/uniterm/issues) 提交问题、建议或使用反馈。
-
-## Star 趋势
+如果 uniTerm 对你有帮助，欢迎点一个 ⭐ Star，这是对项目最大的鼓励，也能让更多人发现它。
 
 <a href="https://star-history.com/#ys-ll/uniterm&Date">
   <picture>
@@ -190,6 +184,14 @@ uniTerm/
     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=ys-ll/uniterm&type=Date" />
   </picture>
 </a>
+
+## 反馈与贡献
+
+欢迎通过 [GitHub Issues](https://github.com/ys-ll/uniterm/issues) 提交问题、建议或使用反馈，也欢迎通过 [Pull Request](https://github.com/ys-ll/uniterm/pulls) 参与共建。
+
+感谢以下朋友为 uniTerm 贡献代码与改进，以及每一位提交 issue 和建议的朋友，是你们让 uniTerm 变得更好 ❤️
+
+- [@yuwei5380](https://github.com/yuwei5380)
 
 ## 开源协议
 

@@ -20,12 +20,12 @@
 
 - [Features](#features)
 - [Screenshots](#screenshots)
-- [Quick Workflows](#quick-workflows)
 - [Download](#download)
+- [Quick Workflows](#quick-workflows)
 - [Tech Stack](#tech-stack)
-- [Prerequisites](#prerequisites)
-- [Getting Started](#getting-started)
+- [Build from Source](#build-from-source)
 - [Project Structure](#project-structure)
+- [Star this Project](#star-this-project)
 - [Feedback & Contributing](#feedback--contributing)
 - [License](#license)
 
@@ -49,7 +49,7 @@ Local terminal, SSH / Telnet / Mosh, file transfer (SFTP / FTP), RDP / VNC / SPI
 - **Remote Terminal** — Supports SSH / Telnet / Mosh. Connect via password or private key authentication; SSH for general remote access, Telnet for legacy/embedded devices, and Mosh for high-latency mobile networks.
 - **Local Terminal** — Supports PowerShell / CMD / Git Bash / WSL. Local shells share the same font, color, and behavior settings as SSH sessions.
 - **Serial Terminal** — Scan available serial ports and connect with configurable baud rate, data bits, stop bits, and parity. Supports local echo and CR→CRLF normalization.
-- **File Transfer** — Supports SFTP / FTP / FTPS / Zmodem. Dual-pane browser for local and remote files. SFTP over SSH; FTP/FTPS with explicit TLS, configurable passive/active mode, and character encoding. Upload, download, drag-and-drop, delete, rename, and more. Transfers tracked per tab with pause, resume, and cancel. SFTP supports max concurrent transfer limit. Zmodem protocol (`rz`/`sz`) supported in SSH terminals, drag-and-drop to upload.
+- **File Transfer** — Supports SFTP / FTP / FTPS / Zmodem. Dual-pane browser for local and remote files; Zmodem (`rz`/`sz`) supported in SSH terminals.
 - **Remote Desktop** — Supports RDP / VNC / SPICE. Connect to Windows Remote Desktop, VNC, and SPICE.
 - **Database Client** — Connect to MySQL, PostgreSQL, and rqlite databases. Execute SQL queries, browse table structures, and edit data rows inline — all from a unified interface.
 - **SSH Tunnel** — Port forwarding. Any connection can use an existing SSH connection as a jump host. Auto-assigns local port, tunnels TCP through SSH to the target. Supports all TCP protocol connection types.
@@ -95,6 +95,20 @@ Connection management, workspace splits, cloud sync, themes — your terminal, y
   <img src="docs/imgs/screenshot-ai-config.png" alt="AI Model Config" width="45%" />
 </p>
 
+## Download
+
+Get the latest pre-built binaries from [GitHub Releases](https://github.com/ys-ll/uniterm/releases):
+
+- **Windows**: installer `uniterm-windows-amd64-installer-*.exe`, or portable `uniterm-windows-amd64-portable-*.zip`
+- **macOS**: Download `uniterm-darwin-universal-*.dmg`
+- **Linux**: Download `uniterm-linux-amd64-*.tar.gz`
+
+### Runtime Dependencies
+
+- **Windows**: WebView2 runtime (included in Windows 10+; older versions need a one-time install)
+- **macOS**: No extra dependencies (uses the system WebKit)
+- **Linux**: `libgtk-3-0` and `libwebkit2gtk-4.1-0` (preinstalled on most desktop distros)
+
 ## Quick Workflows
 
 ### SSH Connection
@@ -115,14 +129,6 @@ Connection management, workspace splits, cloud sync, themes — your terminal, y
 2. Select **Connect SFTP**
 3. Browse, upload, download, and drag-and-drop files in the dual-pane file manager
 
-## Download
-
-Get the latest pre-built binaries from [GitHub Releases](https://github.com/ys-ll/uniterm/releases):
-
-- **Windows**: Download `uniterm-windows-amd64-installer-*.exe` installer
-- **macOS**: Download `uniterm-darwin-universal-*.dmg`
-- **Linux**: Download `uniterm-linux-amd64-*.tar.gz`
-
 ## Tech Stack
 
 | Layer | Technology |
@@ -133,19 +139,9 @@ Get the latest pre-built binaries from [GitHub Releases](https://github.com/ys-l
 | Terminal | xterm.js |
 | AI Protocol | Anthropic Messages API / OpenAI Chat Completions API |
 
-## Prerequisites
+## Build from Source
 
-- [Go](https://go.dev/dl/) 1.23+
-- [Node.js](https://nodejs.org/) 20+
-- [Wails CLI](https://wails.io/docs/gettingstarted/installation) v2
-
-### Platform-specific
-
-- **Windows**: WebView2 runtime (included in Windows 10+)
-- **macOS**: Xcode Command Line Tools
-- **Linux**: `libgtk-3-dev` and `libwebkit2gtk-4.1-dev`
-
-## Getting Started
+Requires [Go](https://go.dev/dl/) 1.23+, [Node.js](https://nodejs.org/) 20+, and [Wails CLI](https://wails.io/docs/gettingstarted/installation) v2. Additionally, macOS needs Xcode Command Line Tools, and Linux needs `libgtk-3-dev` and `libwebkit2gtk-4.1-dev`.
 
 ```bash
 git clone https://github.com/ys-ll/uniterm.git
@@ -177,11 +173,9 @@ uniTerm/
 └── wails.json
 ```
 
-## Feedback &amp; Contributing
+## Star this Project
 
-Issues, suggestions, and feedback are welcome at [GitHub Issues](https://github.com/ys-ll/uniterm/issues).
-
-## Star History
+If uniTerm is helpful to you, please consider giving it a ⭐ Star — it's the best encouragement for the project and helps more people discover it.
 
 <a href="https://star-history.com/#ys-ll/uniterm&Date">
   <picture>
@@ -190,6 +184,14 @@ Issues, suggestions, and feedback are welcome at [GitHub Issues](https://github.
     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=ys-ll/uniterm&type=Date" />
   </picture>
 </a>
+
+## Feedback &amp; Contributing
+
+Issues, suggestions, and feedback are welcome at [GitHub Issues](https://github.com/ys-ll/uniterm/issues), and contributions via [Pull Request](https://github.com/ys-ll/uniterm/pulls) are always welcome.
+
+Thanks to the following people for contributing code and improvements, and to everyone who reported issues and shared suggestions — you help make uniTerm better ❤️
+
+- [@yuwei5380](https://github.com/yuwei5380)
 
 ## License
 
