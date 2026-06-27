@@ -237,7 +237,6 @@ import { reactive, computed, watch, ref, onMounted } from 'vue'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useI18n } from '../i18n'
 import type { ConnectionConfig, PostLoginExpectStep } from '../types/session'
-import { selectKeyPath } from '../services/keyPathPicker'
 import { GetPlatform, OpenFileDialog } from '../../wailsjs/go/main/App'
 import { Plus, Trash2, ChevronRight, FolderOpen } from '@lucide/vue'
 
@@ -492,7 +491,8 @@ async function confirmNewGroup() {
 
 async function selectKeyFile() {
   try {
-    form.keyPath = await selectKeyPath(OpenFileDialog, form.keyPath || '')
+    const selected = await OpenFileDialog()
+    if (selected) form.keyPath = selected
   } catch (e) {
     console.error('select key file:', e)
   }
